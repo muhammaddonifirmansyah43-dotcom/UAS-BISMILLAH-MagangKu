@@ -29,11 +29,6 @@ function App() {
           path="/dashboard-admin" 
           element={<DashboardAdmin dataLowongan={dataLowongan} setDataLowongan={setDataLowongan} />} 
         />
-
-        <Route 
-          path="/dashboard-user" 
-          element={<Dashboard dataLowongan={dataLowongan} setDataLowongan={setDataLowongan} />} 
-        />
         
         {/* OPER STATE KE TAMBAH (DIBALIKKAN KE PATH /dashboard-admin) */}
         <Route 
