@@ -52,8 +52,12 @@ export default function TambahLowongan({ setDataLowongan }) {
     if (!formData.deadline.trim()) tempErrors.deadline = 'Deadline wajib diisi';
     if (!formData.deskripsi.trim()) tempErrors.deskripsi = 'Deskripsi lowongan wajib diisi';
     if (!formData.persyaratan.trim()) tempErrors.persyaratan = 'Persyaratan wajib diisi';
-    if (!formData.linkPendaftaran.trim() && !formData.emailPendaftaran.trim()) {
+    if (!formData.tentangPerusahaan.trim()) tempErrors.tentangPerusahaan = 'Tentang perusahaan wajib diisi';
+    if (!formData.linkPendaftaran.trim()) {
       tempErrors.linkPendaftaran = 'Wajib diisi *';
+    }
+    if (!formData.emailPendaftaran.trim()) {
+      tempErrors.emailPendaftaran = 'Wajib diisi *';
     }
 
     if (Object.keys(tempErrors).length > 0) {
@@ -106,7 +110,7 @@ export default function TambahLowongan({ setDataLowongan }) {
           <div className="w-8 h-8 bg-purple-900/40 border border-purple-500/20 rounded-full flex items-center justify-center">
             <i className="far fa-user text-purple-400"></i>
           </div>
-          <span>Yanto Admin</span>
+          <span>Admin</span>
         </div>
       </nav>
 
@@ -132,12 +136,12 @@ export default function TambahLowongan({ setDataLowongan }) {
           {/* LOGO */}
           <div>
             <label className="text-purple-300/40 text-[10px] block mb-1.5 uppercase tracking-wider">Logo perusahaan</label>
-            <input 
-              type="file" 
-              id="logo-upload-input" 
-              accept=".jpg, .jpeg, .png" 
-              onChange={handleLogoChange} 
-              className="hidden" 
+            <input
+              type="file"
+              id="logo-upload-input"
+              accept=".jpg, .jpeg, .png"
+              onChange={handleLogoChange}
+              className="hidden"
             />
             <label htmlFor="logo-upload-input" className="flex items-center gap-4 p-4 border border-purple-900/30 bg-[#130933]/20 rounded-xl cursor-pointer hover:border-purple-500/30 transition-colors group">
               <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center p-2 text-black text-xs font-bold text-center shrink-0 overflow-hidden">
@@ -198,7 +202,8 @@ export default function TambahLowongan({ setDataLowongan }) {
 
           <div>
             <label className="text-purple-300/40 text-[10px] block mb-1.5 uppercase tracking-wider">Tentang perusahaan</label>
-            <textarea name="tentangPerusahaan" rows={4} value={formData.tentangPerusahaan} onChange={handleChange} className="w-full bg-[#130933]/30 border border-purple-900/40 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none resize-none" />
+            <textarea name="tentangPerusahaan" rows={4} value={formData.tentangPerusahaan} onChange={handleChange} className={`w-full bg-[#130933]/30 border ${errors.tentangPerusahaan ? 'border-red-500' : 'border-purple-900/40'} rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none resize-none`} />
+            {errors.tentangPerusahaan && <p className="text-red-500 text-[10px] mt-1 font-medium">{errors.tentangPerusahaan}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -214,8 +219,9 @@ export default function TambahLowongan({ setDataLowongan }) {
               <label className="text-purple-300/40 text-[10px] block mb-1.5 uppercase tracking-wider">Email pendaftaran</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400/50 text-xs"><i className="far fa-envelope"></i></span>
-                <input type="email" name="emailPendaftaran" value={formData.emailPendaftaran} onChange={handleChange} className="w-full bg-[#130933]/30 border border-purple-900/40 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none" />
+                <input type="email" name="emailPendaftaran" value={formData.emailPendaftaran} onChange={handleChange} className={`w-full bg-[#130933]/30 border ${errors.emailPendaftaran ? 'border-red-500' : 'border-purple-900/40'} rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none`} />
               </div>
+              {errors.emailPendaftaran && <p className="text-red-500 text-[10px] mt-1 font-medium">{errors.emailPendaftaran}</p>}
             </div>
           </div>
 

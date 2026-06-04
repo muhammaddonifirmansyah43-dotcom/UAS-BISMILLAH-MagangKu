@@ -99,9 +99,9 @@ export default function EditLowongan({ dataLowongan, setDataLowongan }) {
     if (!formData.deadline.trim()) tempErrors.deadline = 'Deadline wajib diisi';
     if (!formData.deskripsi.trim()) tempErrors.deskripsi = 'Deskripsi lowongan wajib diisi';
     if (!formData.persyaratan.trim()) tempErrors.persyaratan = 'Persyaratan wajib diisi';
-    if (!formData.linkPendaftaran.trim() && !formData.emailPendaftaran.trim()) {
-      tempErrors.linkPendaftaran = 'Wajib diisi *';
-    }
+    if (!formData.tentangPerusahaan.trim()) tempErrors.tentangPerusahaan = 'Tentang perusahaan wajib diisi';
+    if (!formData.linkPendaftaran.trim()) tempErrors.linkPendaftaran = 'Wajib diisi *';
+    if (!formData.emailPendaftaran.trim()) tempErrors.emailPendaftaran = 'Wajib diisi *';
 
     if (Object.keys(tempErrors).length > 0) {
       setErrors(tempErrors);
@@ -152,7 +152,7 @@ export default function EditLowongan({ dataLowongan, setDataLowongan }) {
           <div className="w-8 h-8 bg-purple-900/40 border border-purple-500/20 rounded-full flex items-center justify-center">
             <i className="far fa-user text-purple-400"></i>
           </div>
-          <span>Yanto Admin</span>
+          <span>Admin</span>
         </div>
       </nav>
 
@@ -253,7 +253,8 @@ export default function EditLowongan({ dataLowongan, setDataLowongan }) {
           {/* Tentang Perusahaan */}
           <div>
             <label className="text-purple-300/60 text-xs font-semibold block mb-2 uppercase tracking-wider">Tentang perusahaan</label>
-            <textarea name="tentangPerusahaan" rows={4} value={formData.tentangPerusahaan} onChange={handleChange} className="w-full bg-[#130933]/30 border border-purple-900/40 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500/60 transition-colors resize-none leading-relaxed" />
+            <textarea name="tentangPerusahaan" rows={4} value={formData.tentangPerusahaan} onChange={handleChange} className={`w-full bg-[#130933]/30 border ${errors.tentangPerusahaan ? 'border-red-500' : 'border-purple-900/40'} rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500/60 transition-colors resize-none leading-relaxed`} />
+            {errors.tentangPerusahaan && <p className="text-red-500 text-xs mt-1.5 font-medium">{errors.tentangPerusahaan}</p>}
           </div>
 
           {/* Link & Email */}
@@ -270,8 +271,9 @@ export default function EditLowongan({ dataLowongan, setDataLowongan }) {
               <label className="text-purple-300/60 text-xs font-semibold block mb-2 uppercase tracking-wider">Email pendaftaran</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400/50 text-sm"><i className="far fa-envelope"></i></span>
-                <input type="email" name="emailPendaftaran" value={formData.emailPendaftaran} onChange={handleChange} className="w-full bg-[#130933]/30 border border-purple-900/40 rounded-xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500/60 transition-colors" />
+                <input type="email" name="emailPendaftaran" value={formData.emailPendaftaran} onChange={handleChange} className={`w-full bg-[#130933]/30 border ${errors.emailPendaftaran ? 'border-red-500' : 'border-purple-900/40'} rounded-xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500/60 transition-colors`} />
               </div>
+              {errors.emailPendaftaran && <p className="text-red-500 text-xs mt-1.5 font-medium">{errors.emailPendaftaran}</p>}
             </div>
           </div>
 
