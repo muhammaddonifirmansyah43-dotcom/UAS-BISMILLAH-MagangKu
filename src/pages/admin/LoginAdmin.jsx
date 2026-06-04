@@ -57,7 +57,7 @@ export default function LoginAdmin() {
             <div className="w-8 h-8 bg-purple-900/40 border border-purple-500/20 rounded-full flex items-center justify-center">
               <i className="far fa-user text-purple-400"></i>
             </div>
-            <span>Admin 1</span>
+            <span>Admin</span>
             <i className={`fas fa-chevron-down text-[8px] transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 opacity-100' : 'opacity-50'}`}></i>
           </button>
 
