@@ -1,50 +1,106 @@
-import React, { useState, useEffect } from 'react'; 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'; // Ditambahkan Navigate di sini
+import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+
+// Guest Pages / Before Login
+import LandingPage from "./pages/LandingPage";
+import AboutGuest from "./pages/AboutGuest";
+import SearchJobsGuest from "./pages/SearchJobsGuest";
+import JobDetailGuest from "./pages/JobDetailGuest";
+import Register from "./pages/Register";
+import Login from "./pages/Login";
+
+// Auth Pages / After Login
+import Dashboard from "./pages/Dashboard";
+import SavedJobs from "./pages/SavedJobs";
+import About from "./pages/About";
+import Settings from "./pages/Settings";
+import SearchJobs from "./pages/SearchJobs";
+import JobDetail from "./pages/JobDetail";
+
+// Admin Pages
 import DashboardAdmin from "./pages/admin/DashboardAdmin";
 import TambahLowongan from "./pages/admin/TambahLowongan";
 import EditLowongan from "./pages/admin/EditLowongan";
 
-// Impor LoginAdmin dihapus agar tidak memicu error 'Failed to resolve import'
-
 function App() {
-  // 1. Ambil data dari localStorage saat aplikasi pertama kali dimuat.
-  //    Jika belum ada data sama sekali, otomatis jadi kosong []
   const [dataLowongan, setDataLowongan] = useState(() => {
-    const dataTersimpan = localStorage.getItem('data_lowongan_portal');
+    const dataTersimpan = localStorage.getItem("data_lowongan_portal");
     return dataTersimpan ? JSON.parse(dataTersimpan) : [];
   });
 
-  // 2. Simpan otomatis ke localStorage SETIAP KALI dataLowongan berubah 
-  //    (baik saat ditambah, diedit, maupun dihapus)
   useEffect(() => {
-    localStorage.setItem('data_lowongan_portal', JSON.stringify(dataLowongan));
+    localStorage.setItem("data_lowongan_portal", JSON.stringify(dataLowongan));
   }, [dataLowongan]);
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* HALAMAN UTAMA LANGSUNG DIALIKHAN KE DASHBOARD ADMIN */}
-        <Route path="/" element={<Navigate to="/dashboard-admin" replace />} />
-        
-        {/* OPER DATA KE DASHBOARD */}
-        <Route 
-          path="/dashboard-admin" 
-          element={<DashboardAdmin dataLowongan={dataLowongan} setDataLowongan={setDataLowongan} />} 
-        />
-        
-        {/* OPER STATE KE TAMBAH (DIBALIKKAN KE PATH /dashboard-admin) */}
-        <Route 
-          path="/tambah-lowongan" 
-          element={<TambahLowongan dataLowongan={dataLowongan} setDataLowongan={setDataLowongan} />} 
-        />
-        
-        {/* FIX WHITESCREEN: Jalur disamakan dengan navigate milik dashboard */}
-        <Route 
-          path="/edit-lowongan" 
-          element={<EditLowongan dataLowongan={dataLowongan} setDataLowongan={setDataLowongan} />} 
-        />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      {/* ===================== */}
+      {/* PUBLIC / BEFORE LOGIN */}
+      {/* ===================== */}
+
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/tentang-kami" element={<AboutGuest />} />
+      <Route path="/cari-lowongan" element={<SearchJobsGuest />} />
+      <Route path="/detail-lowongan/:id" element={<JobDetailGuest />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/login" element={<Login />} />
+
+      {/* ===================== */}
+      {/* PRIVATE / AFTER LOGIN */}
+      {/* ===================== */}
+
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/search-jobs" element={<SearchJobs />} />
+      <Route path="/job-detail/:id" element={<JobDetail />} />
+      <Route path="/saved-jobs" element={<SavedJobs />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/settings" element={<Settings />} />
+
+      {/* Route lama tetap dibuat agar tidak error kalau masih ada link lama */}
+      <Route path="/edit-profile" element={<Settings />} />
+
+      {/* ===================== */}
+      {/* ADMIN PAGES */}
+      {/* ===================== */}
+
+      <Route
+        path="/admin/dashboard"
+        element={
+          <DashboardAdmin
+            dataLowongan={dataLowongan}
+            setDataLowongan={setDataLowongan}
+          />
+        }
+      />
+
+      <Route
+        path="/admin/tambah-lowongan"
+        element={
+          <TambahLowongan
+            dataLowongan={dataLowongan}
+            setDataLowongan={setDataLowongan}
+          />
+        }
+      />
+
+      <Route
+        path="/admin/edit-lowongan"
+        element={
+          <EditLowongan
+            dataLowongan={dataLowongan}
+            setDataLowongan={setDataLowongan}
+          />
+        }
+      />
+
+      {/* Route lama admin agar link lama tidak error */}
+      <Route path="/dashboard-admin" element={<Navigate to="/admin/dashboard" replace />} />
+      <Route path="/tambah-lowongan" element={<Navigate to="/admin/tambah-lowongan" replace />} />
+      <Route path="/edit-lowongan" element={<Navigate to="/admin/edit-lowongan" replace />} />
+
+      {/* Jika route tidak ditemukan, kembali ke landing page */}
+      <Route path="*" element={<LandingPage />} />
+    </Routes>
   );
 }
 

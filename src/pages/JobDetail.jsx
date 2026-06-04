@@ -3,181 +3,234 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Bookmark,
-  Briefcase,
   CalendarDays,
   CheckCircle,
-  Link,
+  Link as LinkIcon,
   Mail,
   MapPin,
 } from "lucide-react";
-import { allJobs } from "../data/jobs";
+import api from "../api/api";
+import { mapInternshipToJob } from "../api/jobMapper";
 
 function JobDetail() {
-  const navigate = useNavigate();
   const { id } = useParams();
+  const navigate = useNavigate();
 
-  const job = allJobs.find((item) => item.id === Number(id));
-  const [isSaved, setIsSaved] = useState(false);
+  const [job, setJob] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!job) return;
+    const fetchJobDetail = async () => {
+      try {
+        const response = await api.get(`/internships/${id}`);
+        const mappedJob = mapInternshipToJob(response.data.data);
 
-    const savedJobs = JSON.parse(localStorage.getItem("savedJobs")) || [];
-    const removedJobs = JSON.parse(localStorage.getItem("removedJobs")) || [];
+        setJob(mappedJob);
 
-    const existsInStorage = savedJobs.some((item) => item.id === job.id);
-    const existsInRemoved = removedJobs.some((item) => item.id === job.id);
+        try {
+          const bookmarksResponse = await api.get("/bookmarks");
+          const savedList = bookmarksResponse.data.data || [];
 
-    if (existsInRemoved) {
-      setIsSaved(false);
-      return;
-    }
+          const isSaved = savedList.some((item) => {
+            return (
+              item.internship_id === mappedJob.id ||
+              item.internship?.id === mappedJob.id ||
+              item.id === mappedJob.id
+            );
+          });
 
-    setIsSaved(existsInStorage || job.isSaved);
-  }, [job]);
+          setSaved(isSaved);
+        } catch (bookmarkError) {
+          console.error("Gagal mengecek bookmark:", bookmarkError);
+          setSaved(false);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil detail lowongan:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const toggleSavedJob = () => {
-    if (!job) return;
+    fetchJobDetail();
+  }, [id]);
 
-    const savedJobs = JSON.parse(localStorage.getItem("savedJobs")) || [];
-    const removedJobs = JSON.parse(localStorage.getItem("removedJobs")) || [];
+  const handleSaveJob = async () => {
+    if (!job || saving) return;
 
-    if (isSaved) {
-      const updatedSavedJobs = savedJobs.filter((item) => item.id !== job.id);
+    try {
+      setSaving(true);
 
-      const alreadyRemoved = removedJobs.some((item) => item.id === job.id);
-      const updatedRemovedJobs = alreadyRemoved
-        ? removedJobs
-        : [...removedJobs, job];
+      if (saved) {
+        await api.delete(`/bookmarks/${job.id}`);
+        setSaved(false);
+      } else {
+        await api.post(`/bookmarks/${job.id}`);
+        setSaved(true);
+      }
 
-      localStorage.setItem("savedJobs", JSON.stringify(updatedSavedJobs));
-      localStorage.setItem("removedJobs", JSON.stringify(updatedRemovedJobs));
-      setIsSaved(false);
-    } else {
-      const alreadySaved = savedJobs.some((item) => item.id === job.id);
-      const updatedSavedJobs = alreadySaved ? savedJobs : [...savedJobs, job];
+      window.dispatchEvent(new Event("savedJobsUpdated"));
+    } catch (error) {
+      console.error("Gagal menyimpan/menghapus lowongan:", error);
 
-      const updatedRemovedJobs = removedJobs.filter(
-        (item) => item.id !== job.id
-      );
-
-      localStorage.setItem("savedJobs", JSON.stringify(updatedSavedJobs));
-      localStorage.setItem("removedJobs", JSON.stringify(updatedRemovedJobs));
-      setIsSaved(true);
+      if (error.response?.status === 401) {
+        alert("Sesi login kamu sudah habis. Silakan login ulang.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+      } else {
+        alert("Gagal memproses bookmark. Coba lagi ya.");
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (!job) {
+  if (loading) {
     return (
-      <div className="page detail-page">
+      <div className="detail-page">
         <main className="detail-container">
-<button className="detail-back-btn" onClick={() => navigate(-1)}>
-  <span className="back-arrow-symbol">↩</span>
-</button>
-          <section className="empty-state">
-            <div>
-              <h3>Lowongan tidak ditemukan</h3>
-              <p>Data lowongan yang kamu cari tidak tersedia.</p>
-            </div>
-          </section>
+          <p className="loading-text">Memuat detail lowongan...</p>
         </main>
       </div>
     );
   }
 
+  if (!job) {
+    return (
+      <div className="detail-page">
+        <main className="detail-container">
+          <button
+            type="button"
+            className="detail-back-btn"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft size={22} />
+          </button>
+
+          <p className="loading-text">Detail lowongan tidak ditemukan.</p>
+        </main>
+      </div>
+    );
+  }
+
+  const requirementList = job.requirements
+    ? job.requirements.split(",").map((item) => item.trim())
+    : [];
+
   return (
-    <div className="page detail-page">
+    <div className="detail-page">
       <main className="detail-container">
-        <button className="detail-back-btn" onClick={() => navigate(-1)}>
-          <ArrowLeft size={20} />
-        </button>
+        <section className="detail-card">
+          <button
+            type="button"
+            className="detail-back-btn"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft size={22} />
+          </button>
 
-        <section className="detail-hero">
-          <div className="detail-logo-small">
-            <img src={job.image} alt={job.company} />
-          </div>
+          <div className="detail-header">
+            <div className="detail-logo">
+              <img src={job.logo || job.image} alt={job.company} />
+            </div>
 
-          <div className="detail-title-area">
-            <h1>{job.title}</h1>
-            <p>{job.company}</p>
+            <div className="detail-main-info">
+              <h1>{job.title}</h1>
+              <p>{job.company}</p>
 
-            <div className="detail-meta">
-              <span>
-                <MapPin size={14} />
-                {job.location}
+              <div className="detail-meta">
+                <span>
+                  <MapPin size={14} />
+                  {job.location}
+                </span>
+
+                {job.closeDate && (
+                  <span>
+                    <CalendarDays size={14} />
+                    {job.closeDate}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="detail-header-actions">
+              <span className="detail-type-badge">{job.type}</span>
+
+              <span
+                className={
+                  job.status === "open"
+                    ? "detail-status-open"
+                    : "detail-status-closed"
+                }
+              >
+                {job.status === "open" ? "Buka" : "Tutup"}
               </span>
 
-              <span>
-                <CalendarDays size={14} />
-                {job.deadline}
-              </span>
+              <button
+                type="button"
+                className={`detail-save-btn ${saved ? "saved" : ""}`}
+                onClick={handleSaveJob}
+                disabled={saving}
+              >
+                <Bookmark size={24} />
+              </button>
             </div>
           </div>
 
-          <div className="detail-side-actions">
-            <span className="detail-type-pill">{job.type}</span>
-            <span className="detail-status-pill">{job.status}</span>
+          <section className="detail-section">
+            <h2>Deskripsi pekerjaan</h2>
+            <p>{job.description}</p>
+          </section>
 
-            <button className="detail-bookmark-btn" onClick={toggleSavedJob}>
-              <Bookmark
-                size={26}
-                className={isSaved ? "bookmark-icon active" : "bookmark-icon"}
-              />
-            </button>
-          </div>
-        </section>
+          <section className="detail-section">
+            <h2>Persyaratan</h2>
 
-        <section className="detail-info-section">
-          <h2>Deskripsi pekerjaan</h2>
-          <p>
-            {job.description ||
-              "Membantu proses penginputan dan pengelolaan data perusahaan. Melakukan pengecekan dokumen administrasi dan arsip digital. Membantu tim operasional dalam kegiatan harian kantor. Berkoordinasi dengan divisi terkait untuk mendukung kelancaran pekerjaan."}
-          </p>
-        </section>
+            <ul className="requirement-list">
+              {requirementList.length > 0 ? (
+                requirementList.map((item, index) => (
+                  <li key={index}>
+                    <CheckCircle size={14} />
+                    <span>{item}</span>
+                  </li>
+                ))
+              ) : (
+                <li>
+                  <CheckCircle size={14} />
+                  <span>Belum ada persyaratan khusus.</span>
+                </li>
+              )}
+            </ul>
+          </section>
 
-        <section className="detail-info-section">
-          <h2>Persyaratan</h2>
-
-          <ul className="requirement-list">
-            {(job.requirements || [
-              "Siswa/mahasiswa aktif jurusan terkait",
-              "Mampu mengoperasikan Microsoft Office",
-              "Teliti, disiplin, dan bertanggung jawab",
-              "Memiliki kemampuan komunikasi yang baik",
-            ]).map((item, index) => (
-              <li key={index}>
-                <CheckCircle size={15} />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="detail-info-section">
-          <h2>Tentang Perusahaan</h2>
-          <p>
-            {job.company} merupakan perusahaan yang bergerak di bidang pelayanan
-            dan pengembangan sumber daya manusia. Perusahaan ini berkomitmen
-            memberikan pengalaman kerja dan pembelajaran yang profesional bagi
-            peserta magang maupun PKL.
-          </p>
-        </section>
-
-        <section className="detail-info-section">
-          <h2>Info Pendaftaran</h2>
-
-          <div className="registration-info">
+          <section className="detail-section">
+            <h2>Tentang perusahaan</h2>
             <p>
-              <Link size={16} />
-              https://magangku.id/karir/
-              {job.title.toLowerCase().replaceAll(" ", "-")}
+              {job.companyData?.description ||
+                "Informasi perusahaan belum tersedia."}
             </p>
+          </section>
 
-            <p>
-              <Mail size={16} />
-              recruitment@magangku.id
-            </p>
-          </div>
+          <section className="detail-section">
+            <h2>Info pendaftaran</h2>
+
+            <div className="registration-info">
+              {job.registrationUrl && (
+                <p>
+                  <LinkIcon size={14} />
+                  <span>{job.registrationUrl}</span>
+                </p>
+              )}
+
+              {job.companyData?.email && (
+                <p>
+                  <Mail size={14} />
+                  <span>{job.companyData.email}</span>
+                </p>
+              )}
+            </div>
+          </section>
         </section>
       </main>
     </div>
