@@ -23,7 +23,7 @@ export default function LoginAdmin() {
     if (formData.username === 'admin' && formData.password === 'admin123') {
       setIsError(false);
       try {
-        navigate('/dashboard-admin'); 
+        navigate('/dashboard-admin');
       } catch (error) {
         console.error("Gagal navigasi ke /dashboard-admin, mencoba rute utama:", error);
         navigate('/');
