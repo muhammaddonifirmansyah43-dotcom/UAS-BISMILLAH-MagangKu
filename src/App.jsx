@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 // Guest Pages / Before Login
 import LandingPage from "./pages/LandingPage";
@@ -18,8 +19,19 @@ import JobDetail from "./pages/JobDetail";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import TambahLowongan from "./pages/admin/TambahLowongan";
+import EditLowongan from "./pages/admin/EditLowongan";
 
 function App() {
+  const [dataLowongan, setDataLowongan] = useState(() => {
+    const dataTersimpan = localStorage.getItem("data_lowongan_portal");
+    return dataTersimpan ? JSON.parse(dataTersimpan) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("data_lowongan_portal", JSON.stringify(dataLowongan));
+  }, [dataLowongan]);
+
   return (
     <Routes>
       {/* ===================== */}
@@ -52,6 +64,40 @@ function App() {
       {/* ===================== */}
 
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
+
+      <Route
+        path="/admin/tambah-lowongan"
+        element={
+          <TambahLowongan
+            dataLowongan={dataLowongan}
+            setDataLowongan={setDataLowongan}
+          />
+        }
+      />
+
+      <Route
+        path="/admin/edit-lowongan"
+        element={
+          <EditLowongan
+            dataLowongan={dataLowongan}
+            setDataLowongan={setDataLowongan}
+          />
+        }
+      />
+
+      {/* Route lama admin agar link lama tidak error */}
+      <Route
+        path="/dashboard-admin"
+        element={<Navigate to="/admin/dashboard" replace />}
+      />
+      <Route
+        path="/tambah-lowongan"
+        element={<Navigate to="/admin/tambah-lowongan" replace />}
+      />
+      <Route
+        path="/edit-lowongan"
+        element={<Navigate to="/admin/edit-lowongan" replace />}
+      />
 
       {/* Jika route tidak ditemukan, kembali ke landing page */}
       <Route path="*" element={<LandingPage />} />
