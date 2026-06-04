@@ -1,13 +1,27 @@
-import { Briefcase, MapPin, Bookmark } from "lucide-react";
+import { Bookmark, Briefcase, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-function SearchJobCard({ job }) {
+function SearchJobCard({
+  job,
+  detailPath = "/job-detail",
+  isGuest = false,
+  onDetailClick,
+}) {
   const navigate = useNavigate();
+
+  const handleDetailClick = () => {
+    if (isGuest && onDetailClick) {
+      onDetailClick();
+      return;
+    }
+
+    navigate(`${detailPath}/${job.id}`);
+  };
 
   return (
     <article className="search-job-card">
       <div className="search-job-logo">
-        <img src={job.image} alt={job.company} />
+        <img src={job.logo || job.image} alt={job.company} />
       </div>
 
       <div className="search-job-info">
@@ -28,15 +42,18 @@ function SearchJobCard({ job }) {
       </div>
 
       <div className="search-job-right">
-        <div className="bookmark-placeholder">
-          {job.isSaved && (
-            <Bookmark size={32} className="bookmark-icon active" />
-          )}
-        </div>
+        {!isGuest && job.isSaved ? (
+          <div className="bookmark-placeholder">
+            <Bookmark size={26} className="bookmark-icon active" />
+          </div>
+        ) : (
+          !isGuest && <div className="bookmark-placeholder empty"></div>
+        )}
 
         <button
-          className="detail-btn"
-          onClick={() => navigate(`/detail-lowongan/${job.id}`)}
+          type="button"
+          className={isGuest ? "guest-detail-btn" : "detail-btn"}
+          onClick={handleDetailClick}
         >
           Lihat Detail
         </button>

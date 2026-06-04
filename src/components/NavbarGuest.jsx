@@ -26,26 +26,14 @@ function NavbarGuest() {
         >
           Tentang Kami
         </NavLink>
-
-        <NavLink
-          to="/cari-lowongan"
-          className={({ isActive }) =>
-            isActive ? "nav-item active" : "nav-item"
-          }
-        >
-          Cari Lowongan
-        </NavLink>
       </nav>
 
       <div className="nav-buttons">
-        <button className="btn-secondary">
+        <Link to="/login" className="btn-secondary">
           Masuk
-        </button>
+        </Link>
 
-        <Link
-          to="/register"
-          className="btn-primary"
-        >
+        <Link to="/register" className="btn-primary">
           Daftar
         </Link>
       </div>

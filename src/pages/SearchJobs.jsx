@@ -1,76 +1,118 @@
-import { useEffect, useMemo, useState } from "react";
-import { SearchX, ChevronDown } from "lucide-react";
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import SearchJobCard from "../components/SearchJobCard";
-import { allJobs } from "../data/jobs";
+import api from "../api/api";
+import { mapInternshipToJob } from "../api/jobMapper";
 
 function SearchJobs() {
-  const [keywordInput, setKeywordInput] = useState("");
-  const [keyword, setKeyword] = useState("");
+  const [jobs, setJobs] = useState([]);
+  const [filteredJobs, setFilteredJobs] = useState([]);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [activeType, setActiveType] = useState("Semua");
+  const [selectedLocation, setSelectedLocation] = useState("");
+  const [showLocationFilter, setShowLocationFilter] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const [location, setLocation] = useState("Semua");
-  const [tempLocation, setTempLocation] = useState("Semua");
+  const getSavedInternshipIds = (bookmarkData) => {
+    return bookmarkData
+      .map((bookmark) => {
+        if (bookmark.internship_id) return bookmark.internship_id;
+        if (bookmark.internship?.id) return bookmark.internship.id;
+        return null;
+      })
+      .filter(Boolean);
+  };
 
-  const [type, setType] = useState("Semua");
-  const [savedIds, setSavedIds] = useState([]);
-  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
+  const filterJobs = (keyword, type, location, sourceJobs = jobs) => {
+    let result = [...sourceJobs];
+
+    if (keyword.trim() !== "") {
+      result = result.filter(
+        (job) =>
+          job.title.toLowerCase().includes(keyword.toLowerCase()) ||
+          job.company.toLowerCase().includes(keyword.toLowerCase())
+      );
+    }
+
+    if (type !== "Semua") {
+      result = result.filter((job) => job.type === type);
+    }
+
+    if (location) {
+      result = result.filter((job) => job.location === location);
+    }
+
+    setFilteredJobs(result);
+  };
 
   useEffect(() => {
-    const savedJobs = JSON.parse(localStorage.getItem("savedJobs")) || [];
-    setSavedIds(savedJobs.map((job) => job.id));
+    const fetchJobs = async () => {
+      try {
+        setLoading(true);
+
+        const response = await api.get("/internships");
+
+        const openJobs = response.data.data
+          .map(mapInternshipToJob)
+          .filter((job) => job.status === "open");
+
+        let savedIds = [];
+
+        try {
+          const bookmarksResponse = await api.get("/bookmarks");
+          const bookmarkData = bookmarksResponse.data.data || [];
+          savedIds = getSavedInternshipIds(bookmarkData);
+        } catch (bookmarkError) {
+          console.error("Gagal mengambil data bookmark:", bookmarkError);
+        }
+
+        const jobsWithSavedStatus = openJobs.map((job) => ({
+          ...job,
+          isSaved: savedIds.includes(job.id),
+        }));
+
+        setJobs(jobsWithSavedStatus);
+        setFilteredJobs(jobsWithSavedStatus);
+      } catch (error) {
+        console.error("Gagal mengambil data lowongan:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobs();
   }, []);
 
-  const filteredJobs = useMemo(() => {
-    return allJobs
-      .map((job) => ({
-        ...job,
-        isSaved: savedIds.includes(job.id),
-      }))
-      .filter((job) => {
-        const keywordMatch =
-          job.title.toLowerCase().includes(keyword.toLowerCase()) ||
-          job.company.toLowerCase().includes(keyword.toLowerCase());
-
-        const locationMatch = location === "Semua" || job.location === location;
-        const typeMatch = type === "Semua" || job.type === type;
-
-        return keywordMatch && locationMatch && typeMatch;
-      });
-  }, [keyword, location, type, savedIds]);
-
   const handleSearch = () => {
-    setKeyword(keywordInput);
+    filterJobs(searchKeyword, activeType, selectedLocation);
   };
 
-  const handleLocationChange = (value) => {
-    setTempLocation(value);
+  const handleTypeFilter = (type) => {
+    setActiveType(type);
+    filterJobs(searchKeyword, type, selectedLocation);
   };
 
-  const applyLocationFilter = () => {
-    setLocation(tempLocation);
-    setLocationDropdownOpen(false);
+  const handleChooseLocation = (location) => {
+    setSelectedLocation(location);
   };
 
-  const openLocationDropdown = () => {
-    setTempLocation(location);
-    setLocationDropdownOpen(!locationDropdownOpen);
+  const handleApplyLocation = () => {
+    filterJobs(searchKeyword, activeType, selectedLocation);
+    setShowLocationFilter(false);
   };
 
   return (
     <div className="page">
       <Navbar />
 
-      <main className="search-page-container">
-        <section className="search-top-bar">
+      <main className="search-guest-container">
+        <section className="search-guest-top">
           <input
             type="text"
             placeholder="Cari Lowongan"
-            value={keywordInput}
-            onChange={(event) => setKeywordInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") handleSearch();
-            }}
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
           />
 
           <button type="button" onClick={handleSearch}>
@@ -78,74 +120,47 @@ function SearchJobs() {
           </button>
         </section>
 
-        <section className="search-filter-chips">
-          <button
-            className={type === "Semua" ? "filter-chip active" : "filter-chip"}
-            onClick={() => setType("Semua")}
-          >
-            Semua
-          </button>
+        <section className="search-filter-row">
+          {["Semua", "Magang", "PKL"].map((type) => (
+            <button
+              key={type}
+              type="button"
+              className={activeType === type ? "active" : ""}
+              onClick={() => handleTypeFilter(type)}
+            >
+              {type}
+            </button>
+          ))}
 
-          <button
-            className={type === "Magang" ? "filter-chip active" : "filter-chip"}
-            onClick={() => setType("Magang")}
-          >
-            Magang
-          </button>
-
-          <button
-            className={type === "PKL" ? "filter-chip active" : "filter-chip"}
-            onClick={() => setType("PKL")}
-          >
-            PKL
-          </button>
-
-          <div className="location-filter">
+          <div className="location-filter-wrapper">
             <button
               type="button"
-              className="filter-chip location-chip"
-              onClick={openLocationDropdown}
+              className="location-filter-btn"
+              onClick={() => setShowLocationFilter(!showLocationFilter)}
             >
-              <span>{location === "Semua" ? "Lokasi" : location}</span>
-              <ChevronDown size={14} />
+              Lokasi
             </button>
 
-            {locationDropdownOpen && (
+            {showLocationFilter && (
               <div className="location-dropdown">
-                <p>Pilih Lokasi</p>
+                <h4>Pilih Lokasi</h4>
 
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={tempLocation === "Semua"}
-                    onChange={() => handleLocationChange("Semua")}
-                  />
-                  Pilih semua
-                </label>
+                {[
+                  { label: "Pilih semua", value: "" },
+                  { label: "Malang", value: "Malang" },
+                  { label: "Batu", value: "Batu" },
+                ].map((item) => (
+                  <label className="location-option" key={item.label}>
+                    <input
+                      type="checkbox"
+                      checked={selectedLocation === item.value}
+                      onChange={() => handleChooseLocation(item.value)}
+                    />
+                    <span>{item.label}</span>
+                  </label>
+                ))}
 
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={tempLocation === "Malang"}
-                    onChange={() => handleLocationChange("Malang")}
-                  />
-                  Malang
-                </label>
-
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={tempLocation === "Batu"}
-                    onChange={() => handleLocationChange("Batu")}
-                  />
-                  Batu
-                </label>
-
-                <button
-                  type="button"
-                  className="apply-location-btn"
-                  onClick={applyLocationFilter}
-                >
+                <button type="button" onClick={handleApplyLocation}>
                   Terapkan
                 </button>
               </div>
@@ -153,24 +168,22 @@ function SearchJobs() {
           </div>
         </section>
 
-        {filteredJobs.length > 0 ? (
-          <section className="search-job-list">
-            {filteredJobs.map((job) => (
-              <SearchJobCard key={job.id} job={job} />
-            ))}
-          </section>
-        ) : (
-          <section className="search-empty-state">
-            <div>
-              <div className="search-empty-icon">
-                <SearchX size={42} />
-              </div>
-
-              <h3>Lowongan tidak ditemukan</h3>
-              <p>Coba gunakan kata kunci lain atau ubah filter pencarian</p>
-            </div>
-          </section>
-        )}
+        <section className="search-job-list">
+          {loading ? (
+            <p className="loading-text">Memuat lowongan...</p>
+          ) : filteredJobs.length > 0 ? (
+            filteredJobs.map((job) => (
+              <SearchJobCard
+                key={job.id}
+                job={job}
+                detailPath="/job-detail"
+                isGuest={false}
+              />
+            ))
+          ) : (
+            <p className="loading-text">Lowongan tidak ditemukan</p>
+          )}
+        </section>
       </main>
 
       <Footer />

@@ -20,20 +20,35 @@ const defaultProfile = {
 };
 
 function Navbar() {
+  const navigate = useNavigate();
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const [profile, setProfile] = useState(() => {
-    return JSON.parse(localStorage.getItem("userProfile")) || defaultProfile;
-  });
+    const userProfile = JSON.parse(localStorage.getItem("userProfile"));
+    const user = JSON.parse(localStorage.getItem("user"));
 
-  const navigate = useNavigate();
+    return userProfile || {
+      ...defaultProfile,
+      name: user?.name || defaultProfile.name,
+      email: user?.email || defaultProfile.email,
+    };
+  });
 
   useEffect(() => {
     const loadProfile = () => {
       const storedProfile = JSON.parse(localStorage.getItem("userProfile"));
-      setProfile(storedProfile || defaultProfile);
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      setProfile(
+        storedProfile || {
+          ...defaultProfile,
+          name: user?.name || defaultProfile.name,
+          email: user?.email || defaultProfile.email,
+        }
+      );
     };
 
     loadProfile();
@@ -48,7 +63,13 @@ function Navbar() {
   }, []);
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("savedJobs");
+
     setLogoutModalOpen(false);
+    setDropdownOpen(false);
+
     navigate("/");
   };
 
@@ -60,15 +81,13 @@ function Navbar() {
   return (
     <>
       <header className="navbar">
-        {/* Logo */}
         <div className="brand">
           <img src={logo} alt="MagangKu" />
         </div>
 
-        {/* Navigation */}
         <nav className="nav-links">
           <NavLink
-            to="/"
+            to="/dashboard"
             className={({ isActive }) =>
               isActive ? "nav-item active" : "nav-item"
             }
@@ -77,7 +96,7 @@ function Navbar() {
           </NavLink>
 
           <NavLink
-            to="/cari-lowongan"
+            to="/search-jobs"
             className={({ isActive }) =>
               isActive ? "nav-item active" : "nav-item"
             }
@@ -86,7 +105,6 @@ function Navbar() {
           </NavLink>
         </nav>
 
-        {/* User Menu */}
         <div className="user-menu">
           <img
             src={profile.photo || userPhoto}
@@ -95,9 +113,10 @@ function Navbar() {
             className="profile-photo"
           />
 
-          <span>{profile.name}</span>
+          <span onClick={openProfileOnly}>{profile.name}</span>
 
           <button
+            type="button"
             className="dropdown-toggle"
             onClick={() => setDropdownOpen(!dropdownOpen)}
           >
@@ -106,24 +125,28 @@ function Navbar() {
 
           {dropdownOpen && (
             <div className="dropdown">
-              <NavLink to="/lowongan-disimpan">
+              <NavLink to="/saved-jobs" onClick={() => setDropdownOpen(false)}>
                 <Bookmark size={16} />
                 Simpan Lowongan
               </NavLink>
 
-              <button onClick={openProfileOnly}>
+              <NavLink to="/settings" onClick={() => setDropdownOpen(false)}>
                 <Settings size={16} />
                 Pengaturan
-              </button>
+              </NavLink>
 
-              <NavLink to="/tentang-kami">
+              <NavLink to="/about" onClick={() => setDropdownOpen(false)}>
                 <Info size={16} />
                 Tentang Kami
               </NavLink>
 
               <button
+                type="button"
                 className="danger"
-                onClick={() => setLogoutModalOpen(true)}
+                onClick={() => {
+                  setDropdownOpen(false);
+                  setLogoutModalOpen(true);
+                }}
               >
                 <LogOut size={16} />
                 Keluar
@@ -133,22 +156,27 @@ function Navbar() {
         </div>
       </header>
 
-      {/* Logout Modal */}
       {logoutModalOpen && (
         <div className="modal-overlay">
           <div className="modal-box">
             <LogOut size={44} className="modal-icon" />
+
             <p>Anda yakin ingin logout?</p>
 
             <div className="modal-actions">
               <button
+                type="button"
                 className="cancel-btn"
                 onClick={() => setLogoutModalOpen(false)}
               >
                 Batal
               </button>
 
-              <button className="danger-btn" onClick={handleLogout}>
+              <button
+                type="button"
+                className="danger-btn"
+                onClick={handleLogout}
+              >
                 Keluar
               </button>
             </div>
@@ -156,10 +184,9 @@ function Navbar() {
         </div>
       )}
 
-      {/* Profile Modal */}
       {profileModalOpen && (
         <ProfileModal
-          showEditButton={true}
+          showEditButton={false}
           onClose={() => setProfileModalOpen(false)}
         />
       )}

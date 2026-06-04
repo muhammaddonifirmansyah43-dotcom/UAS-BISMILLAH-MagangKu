@@ -1,9 +1,26 @@
 import { Briefcase, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-function JobCard({ job }) {
+function JobCard({
+  job,
+  detailPath = "/job-detail",
+  isGuest = false,
+  onDetailClick,
+}) {
+  const navigate = useNavigate();
+
+  const handleDetailClick = () => {
+    if (isGuest && onDetailClick) {
+      onDetailClick();
+      return;
+    }
+
+    navigate(`${detailPath}/${job.id}`);
+  };
+
   return (
     <article className="job-card">
-      <img src={job.image} alt={job.company} />
+      <img src={job.logo || job.image} alt={job.company} />
 
       <h3>{job.title}</h3>
       <p>{job.company}</p>
@@ -20,7 +37,13 @@ function JobCard({ job }) {
         </span>
       </div>
 
-      <button className="primary-btn">Lihat Detail</button>
+      <button
+        type="button"
+        className={isGuest ? "guest-detail-btn" : "primary-btn"}
+        onClick={handleDetailClick}
+      >
+        Lihat Detail
+      </button>
     </article>
   );
 }
