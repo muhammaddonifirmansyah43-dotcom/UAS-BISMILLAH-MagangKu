@@ -18,7 +18,7 @@ import SearchJobs from "./pages/SearchJobs";
 import JobDetail from "./pages/JobDetail";
 
 // Admin Pages
-import DashboardAdmin from "./pages/admin/DashboardAdmin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import TambahLowongan from "./pages/admin/TambahLowongan";
 import EditLowongan from "./pages/admin/EditLowongan";
 
@@ -63,15 +63,7 @@ function App() {
       {/* ADMIN PAGES */}
       {/* ===================== */}
 
-      <Route
-        path="/admin/dashboard"
-        element={
-          <DashboardAdmin
-            dataLowongan={dataLowongan}
-            setDataLowongan={setDataLowongan}
-          />
-        }
-      />
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
       <Route
         path="/admin/tambah-lowongan"
@@ -94,9 +86,18 @@ function App() {
       />
 
       {/* Route lama admin agar link lama tidak error */}
-      <Route path="/dashboard-admin" element={<Navigate to="/admin/dashboard" replace />} />
-      <Route path="/tambah-lowongan" element={<Navigate to="/admin/tambah-lowongan" replace />} />
-      <Route path="/edit-lowongan" element={<Navigate to="/admin/edit-lowongan" replace />} />
+      <Route
+        path="/dashboard-admin"
+        element={<Navigate to="/admin/dashboard" replace />}
+      />
+      <Route
+        path="/tambah-lowongan"
+        element={<Navigate to="/admin/tambah-lowongan" replace />}
+      />
+      <Route
+        path="/edit-lowongan"
+        element={<Navigate to="/admin/edit-lowongan" replace />}
+      />
 
       {/* Jika route tidak ditemukan, kembali ke landing page */}
       <Route path="*" element={<LandingPage />} />

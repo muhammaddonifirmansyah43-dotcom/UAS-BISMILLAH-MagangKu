@@ -44,7 +44,7 @@ function LandingPage() {
               dan mulai lamar!
             </p>
 
-            <Link to="/cari-lowongan" className="hero-search-btn">
+            <Link to="/cari-lowongan" className="hero-search-box">
               Cari Lowongan
               <ArrowRight size={16} />
             </Link>
