@@ -16,6 +16,9 @@ import Settings from "./pages/Settings";
 import SearchJobs from "./pages/SearchJobs";
 import JobDetail from "./pages/JobDetail";
 
+// Admin Pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+
 function App() {
   return (
     <Routes>
@@ -43,6 +46,12 @@ function App() {
 
       {/* Route lama tetap dibuat agar tidak error kalau masih ada link lama */}
       <Route path="/edit-profile" element={<Settings />} />
+
+      {/* ===================== */}
+      {/* ADMIN PAGES */}
+      {/* ===================== */}
+
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
       {/* Jika route tidak ditemukan, kembali ke landing page */}
       <Route path="*" element={<LandingPage />} />

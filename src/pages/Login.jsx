@@ -58,15 +58,25 @@ function Login() {
     try {
       setLoading(true);
 
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
       const response = await api.post("/login", {
-        email: formData.username,
+        email: formData.username.trim(),
         password: formData.password,
       });
 
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      const token = response.data.token;
+      const user = response.data.user;
 
-      navigate("/dashboard");
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      if (user?.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       console.error("Login gagal:", error);
 
