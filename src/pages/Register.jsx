@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
+import api from "../api/api";
+
 function Register() {
   const navigate = useNavigate();
 
@@ -14,6 +16,7 @@ function Register() {
   });
 
   const [errors, setErrors] = useState({});
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -28,6 +31,7 @@ function Register() {
     setErrors((prev) => ({
       ...prev,
       [name]: "",
+      general: "",
     }));
   };
 
@@ -63,7 +67,7 @@ function Register() {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const validationErrors = validateForm();
@@ -73,7 +77,51 @@ function Register() {
       return;
     }
 
-    navigate("/login");
+    try {
+      setLoadingSubmit(true);
+
+      await api.post("/register", {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      alert("Registrasi berhasil. Silakan login menggunakan akun yang baru dibuat.");
+      navigate("/login");
+    } catch (error) {
+      console.error("Gagal registrasi:", error);
+
+      if (error.response?.status === 422) {
+        const backendErrors = error.response.data.errors || {};
+        const formattedErrors = {};
+
+        if (backendErrors.name) {
+          formattedErrors.name = backendErrors.name[0];
+        }
+
+        if (backendErrors.email) {
+          formattedErrors.email = backendErrors.email[0];
+        }
+
+        if (backendErrors.password) {
+          formattedErrors.password = backendErrors.password[0];
+        }
+
+        formattedErrors.general =
+          error.response.data.message || "Data registrasi tidak valid.";
+
+        setErrors(formattedErrors);
+        return;
+      }
+
+      setErrors({
+        general:
+          error.response?.data?.message ||
+          "Registrasi gagal. Pastikan backend sudah berjalan.",
+      });
+    } finally {
+      setLoadingSubmit(false);
+    }
   };
 
   return (
@@ -90,10 +138,14 @@ function Register() {
         <h1 className="register-title">Daftar akun baru</h1>
 
         <form className="register-card" onSubmit={handleSubmit}>
+          {errors.general && (
+            <small className="error-text" style={{ marginBottom: "10px" }}>
+              {errors.general}
+            </small>
+          )}
+
           <div className="register-group">
-            <label>
-              Nama Lengkap {errors.name && <span>*</span>}
-            </label>
+            <label>Nama Lengkap {errors.name && <span>*</span>}</label>
 
             <input
               type="text"
@@ -107,9 +159,7 @@ function Register() {
           </div>
 
           <div className="register-group">
-            <label>
-              Email {errors.email && <span>*</span>}
-            </label>
+            <label>Email {errors.email && <span>*</span>}</label>
 
             <input
               type="text"
@@ -143,9 +193,7 @@ function Register() {
           </div>
 
           <div className="register-group">
-            <label>
-              Password {errors.password && <span>*</span>}
-            </label>
+            <label>Password {errors.password && <span>*</span>}</label>
 
             <div className="register-password">
               <input
@@ -194,14 +242,12 @@ function Register() {
             </div>
 
             {errors.confirmPassword && (
-              <small className="error-text">
-                {errors.confirmPassword}
-              </small>
+              <small className="error-text">{errors.confirmPassword}</small>
             )}
           </div>
 
-          <button type="submit" className="register-btn">
-            Daftar
+          <button type="submit" className="register-btn" disabled={loadingSubmit}>
+            {loadingSubmit ? "Memproses..." : "Daftar"}
           </button>
 
           <p className="register-login-text">

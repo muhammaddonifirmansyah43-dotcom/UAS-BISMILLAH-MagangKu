@@ -9,6 +9,17 @@ function SearchJobCard({
 }) {
   const navigate = useNavigate();
 
+  const defaultLogo = "/images/logo-agrowisata.jpeg";
+
+  const getLogo = () => {
+    return (
+      job?.logo ||
+      job?.image ||
+      job?.companyData?.logo_url ||
+      defaultLogo
+    );
+  };
+
   const handleDetailClick = () => {
     if (isGuest && onDetailClick) {
       onDetailClick();
@@ -21,28 +32,34 @@ function SearchJobCard({
   return (
     <article className="search-job-card">
       <div className="search-job-logo">
-        <img src={job.logo || job.image} alt={job.company} />
+        <img
+          src={getLogo()}
+          alt={job?.company || "Logo perusahaan"}
+          onError={(e) => {
+            e.currentTarget.src = defaultLogo;
+          }}
+        />
       </div>
 
       <div className="search-job-info">
-        <h3>{job.title}</h3>
-        <p>{job.company}</p>
+        <h3>{job?.title || "Nama Lowongan"}</h3>
+        <p>{job?.company || "Nama Perusahaan"}</p>
 
         <div className="tags">
           <span className="tag">
             <Briefcase size={14} />
-            {job.type}
+            {job?.type || "-"}
           </span>
 
           <span className="tag">
             <MapPin size={14} />
-            {job.location}
+            {job?.location || "-"}
           </span>
         </div>
       </div>
 
       <div className="search-job-right">
-        {!isGuest && job.isSaved ? (
+        {!isGuest && job?.isSaved ? (
           <div className="bookmark-placeholder">
             <Bookmark size={26} className="bookmark-icon active" />
           </div>

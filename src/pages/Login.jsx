@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
+
 import logo from "../assets/Logo_MagangKu.png";
 import api from "../api/api";
 
 function Login() {
   const navigate = useNavigate();
+
+  const adminEmail = "magangku18@gmail.com";
+
+  const forgotPasswordMailto = `mailto:${adminEmail}?subject=Permintaan Reset Password MagangKu&body=Halo Admin MagangKu,%0A%0ASaya lupa password akun saya.%0A%0ANama:%0AEmail akun:%0A%0AMohon bantu reset password saya.%0A%0ATerima kasih.`;
 
   const [formData, setFormData] = useState({
     username: "",
@@ -35,7 +40,9 @@ function Login() {
     const newErrors = {};
 
     if (!formData.username.trim()) {
-      newErrors.username = "email / nama pengguna wajib di isi";
+      newErrors.username = "email wajib di isi";
+    } else if (!/\S+@\S+\.\S+/.test(formData.username)) {
+      newErrors.username = "format email tidak valid";
     }
 
     if (!formData.password.trim()) {
@@ -69,10 +76,17 @@ function Login() {
       const token = response.data.token;
       const user = response.data.user;
 
+      if (!token || !user) {
+        setErrors({
+          general: "Login berhasil, tetapi data token tidak lengkap.",
+        });
+        return;
+      }
+
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      if (user?.role === "admin") {
+      if (user.role === "admin") {
         navigate("/admin/dashboard");
       } else {
         navigate("/dashboard");
@@ -80,8 +94,24 @@ function Login() {
     } catch (error) {
       console.error("Login gagal:", error);
 
+      if (error.response?.status === 401) {
+        setErrors({
+          general: "Email atau password salah",
+        });
+        return;
+      }
+
+      if (error.response?.status === 422) {
+        setErrors({
+          general: "Email dan password wajib diisi dengan benar",
+        });
+        return;
+      }
+
       setErrors({
-        general: "Email atau password salah",
+        general:
+          error.response?.data?.message ||
+          "Login gagal. Pastikan backend sudah berjalan.",
       });
     } finally {
       setLoading(false);
@@ -98,8 +128,7 @@ function Login() {
         <form className="login-card" onSubmit={handleSubmit}>
           <div className="login-group">
             <label>
-              Email / Nama Pengguna{" "}
-              {(errors.username || errors.general) && <span>*</span>}
+              Email {(errors.username || errors.general) && <span>*</span>}
             </label>
 
             <input
@@ -107,9 +136,7 @@ function Login() {
               name="username"
               value={formData.username}
               onChange={handleChange}
-              className={
-                errors.username || errors.general ? "input-error" : ""
-              }
+              className={errors.username || errors.general ? "input-error" : ""}
               autoComplete="email"
             />
 
@@ -129,9 +156,7 @@ function Login() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className={
-                  errors.password || errors.general ? "input-error" : ""
-                }
+                className={errors.password || errors.general ? "input-error" : ""}
                 autoComplete="current-password"
               />
 
@@ -162,7 +187,7 @@ function Login() {
           <p className="forgot-password">
             Lupa password? Hubungi admin
             <br />
-            <a href="mailto:@magangku.com">@magangku.com</a>
+            <a href={forgotPasswordMailto}>{adminEmail}</a>
           </p>
 
           <div className="login-divider"></div>

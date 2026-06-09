@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   CheckCircle,
   Users,
@@ -9,15 +10,14 @@ import {
   KeyRound,
   Search,
   Plus,
+  LogOut,
+  ChevronDown,
 } from "lucide-react";
 
 import api from "../../api/api";
 import "../../index.css";
 
 import logo from "../../assets/Logo_MagangKu.png";
-import userPhoto from "../../assets/Karim-Benzema-Profil.jpeg";
-import lucaPhoto from "../../assets/Luca-Modric.png";
-import lenyPhoto from "../../assets/Leny-Yoro.png";
 
 import CloseJobModal from "../../components/admin/CloseJobModal";
 import OpenJobModal from "../../components/admin/OpenJobModal";
@@ -25,9 +25,13 @@ import DeleteJobModal from "../../components/admin/DeleteJobModal";
 import ResetPasswordModal from "../../components/admin/ResetPasswordModal";
 
 function AdminDashboard() {
+  const navigate = useNavigate();
+
   const [jobs, setJobs] = useState([]);
   const [users, setUsers] = useState([]);
+
   const [loadingJobs, setLoadingJobs] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   const [selectedJob, setSelectedJob] = useState(null);
   const [modalType, setModalType] = useState("");
@@ -35,10 +39,14 @@ function AdminDashboard() {
 
   const [selectedUser, setSelectedUser] = useState(null);
   const [resetLoading, setResetLoading] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
+
+  const defaultUserPhoto = "/images/default-user.png";
 
   useEffect(() => {
     fetchJobs();
-    fetchUsersDummy();
+    fetchUsers();
   }, []);
 
   const fetchJobs = async () => {
@@ -49,33 +57,72 @@ function AdminDashboard() {
       setJobs(response.data.data || []);
     } catch (error) {
       console.error("Gagal mengambil data lowongan:", error);
+
+      if (error.response?.status === 401) {
+        alert("Sesi login admin habis. Silakan login ulang.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
+
       alert("Gagal mengambil data lowongan");
     } finally {
       setLoadingJobs(false);
     }
   };
 
-  const fetchUsersDummy = () => {
-    setUsers([
-      {
-        id: 1,
-        name: "Karim Benzema",
-        email: "karimbenzema@gmail.com",
-        photo: userPhoto,
+  const fetchUsers = async () => {
+    try {
+      setLoadingUsers(true);
+
+      const response = await api.get("/users");
+      const userData = response.data.data || response.data || [];
+
+      setUsers(userData);
+    } catch (error) {
+      console.error("Gagal mengambil data pengguna:", error);
+      console.log("Status users:", error.response?.status);
+      console.log("Data error users:", error.response?.data);
+
+      if (error.response?.status === 401) {
+        alert("Sesi login admin habis. Silakan login ulang.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
+
+      setUsers([]);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleAddJob = () => {
+    navigate("/admin/tambah-lowongan");
+  };
+
+  const handleEditJob = (job) => {
+    navigate(`/admin/edit-lowongan/${job.id}`, {
+      state: {
+        job,
       },
-      {
-        id: 2,
-        name: "Luca Modric",
-        email: "LucaModric@gmail.com",
-        photo: lucaPhoto,
-      },
-      {
-        id: 3,
-        name: "Leny Yoro",
-        email: "LenyYoro@gmail.com",
-        photo: lenyPhoto,
-      },
-    ]);
+    });
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.post("/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("data_lowongan_portal");
+
+      navigate("/login");
+    }
   };
 
   const openModal = (type, job) => {
@@ -88,19 +135,45 @@ function AdminDashboard() {
     setSelectedJob(null);
   };
 
+  const buildInternshipPayload = (job, status) => {
+    return {
+      company_id: job.company_id || job.company?.id,
+      title: job.title || "",
+      type: job.type || "Magang",
+      description: job.description || "",
+      requirements: job.requirements || "",
+      location: job.location || "",
+      registration_url: job.registration_url || "",
+      status: status,
+      open_date: job.open_date || null,
+      close_date: job.close_date || null,
+    };
+  };
+
   const handleCloseJob = async () => {
     if (!selectedJob) return;
 
     try {
       setActionLoading(true);
 
-      await api.patch(`/admin/internships/${selectedJob.id}/close`);
-      await fetchJobs();
+      await api.put(
+        `/internships/${selectedJob.id}`,
+        buildInternshipPayload(selectedJob, "closed")
+      );
 
+      await fetchJobs();
       closeModal();
     } catch (error) {
       console.error("Gagal menutup lowongan:", error);
-      alert("Gagal menutup lowongan");
+      console.log("Status:", error.response?.status);
+      console.log("Data error:", error.response?.data);
+
+      alert(
+        error.response?.data?.message ||
+          `Gagal menutup lowongan. Status: ${
+            error.response?.status || "unknown"
+          }`
+      );
     } finally {
       setActionLoading(false);
     }
@@ -112,13 +185,24 @@ function AdminDashboard() {
     try {
       setActionLoading(true);
 
-      await api.patch(`/admin/internships/${selectedJob.id}/open`);
-      await fetchJobs();
+      await api.put(
+        `/internships/${selectedJob.id}`,
+        buildInternshipPayload(selectedJob, "open")
+      );
 
+      await fetchJobs();
       closeModal();
     } catch (error) {
       console.error("Gagal membuka lowongan:", error);
-      alert("Gagal membuka lowongan");
+      console.log("Status:", error.response?.status);
+      console.log("Data error:", error.response?.data);
+
+      alert(
+        error.response?.data?.message ||
+          `Gagal membuka lowongan. Status: ${
+            error.response?.status || "unknown"
+          }`
+      );
     } finally {
       setActionLoading(false);
     }
@@ -130,13 +214,21 @@ function AdminDashboard() {
     try {
       setActionLoading(true);
 
-      await api.delete(`/admin/internships/${selectedJob.id}`);
-      await fetchJobs();
+      await api.delete(`/internships/${selectedJob.id}`);
 
+      await fetchJobs();
       closeModal();
     } catch (error) {
       console.error("Gagal menghapus lowongan:", error);
-      alert("Gagal menghapus lowongan");
+      console.log("Status:", error.response?.status);
+      console.log("Data error:", error.response?.data);
+
+      alert(
+        error.response?.data?.message ||
+          `Gagal menghapus lowongan. Status: ${
+            error.response?.status || "unknown"
+          }`
+      );
     } finally {
       setActionLoading(false);
     }
@@ -150,30 +242,59 @@ function AdminDashboard() {
     setSelectedUser(null);
   };
 
-  const handleResetPassword = async () => {
+  const handleResetPassword = async (newPassword) => {
     if (!selectedUser) return;
 
     try {
       setResetLoading(true);
 
-      /*
-        Untuk sementara fitur ini belum disambungkan ke backend.
-        Kalau backend reset password sudah dibuat, nanti request-nya bisa diganti menjadi:
-        await api.patch(`/admin/users/${selectedUser.id}/reset-password`);
-      */
+      await api.put(`/users/${selectedUser.id}/reset-password`, {
+        password: newPassword,
+      });
 
-      alert(`Link reset password untuk ${selectedUser.name} berhasil diproses.`);
+      alert(`Password untuk ${selectedUser.name} berhasil direset.`);
 
       closeResetPasswordModal();
     } catch (error) {
       console.error("Gagal reset password:", error);
-      alert("Gagal mengirim reset password");
+      console.log("Status:", error.response?.status);
+      console.log("Data error:", error.response?.data);
+
+      if (error.response?.status === 401) {
+        alert("Sesi login admin habis. Silakan login ulang.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
+
+      alert(
+        error.response?.data?.message ||
+          `Gagal reset password. Status: ${error.response?.status || "unknown"}`
+      );
     } finally {
       setResetLoading(false);
     }
   };
 
   const activeJobsCount = jobs.filter((job) => job.status === "open").length;
+
+  const studentUsers = users.filter((user) => {
+    return user.role !== "admin";
+  });
+
+  const filteredUsers = studentUsers.filter((user) => {
+    const keyword = userSearch.toLowerCase();
+
+    return (
+      (user.name || "").toLowerCase().includes(keyword) ||
+      (user.email || "").toLowerCase().includes(keyword)
+    );
+  });
+
+  const getUserPhoto = (user) => {
+    return user.avatar_url || user.photo || defaultUserPhoto;
+  };
 
   return (
     <div className="admin-page">
@@ -183,9 +304,24 @@ function AdminDashboard() {
         </div>
 
         <div className="admin-profile">
-          <span className="admin-profile-icon">♡</span>
-          <span>Admin</span>
-          <span>⌄</span>
+          <button
+            type="button"
+            className="admin-profile-btn"
+            onClick={() => setShowAdminMenu(!showAdminMenu)}
+          >
+            <span className="admin-profile-icon">♡</span>
+            <span>Admin</span>
+            <ChevronDown size={14} />
+          </button>
+
+          {showAdminMenu && (
+            <div className="admin-profile-dropdown">
+              <button type="button" onClick={handleLogout}>
+                <LogOut size={14} />
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -208,7 +344,7 @@ function AdminDashboard() {
             <Users size={32} />
             <div>
               <p>Total Mahasiswa/Siswa</p>
-              <h2>{users.length}</h2>
+              <h2>{studentUsers.length}</h2>
             </div>
           </div>
         </section>
@@ -217,7 +353,11 @@ function AdminDashboard() {
           <div className="admin-section-header">
             <h2>Kelola lowongan</h2>
 
-            <button type="button" className="admin-add-btn">
+            <button
+              type="button"
+              className="admin-add-btn"
+              onClick={handleAddJob}
+            >
               <Plus size={16} />
               Tambah lowongan
             </button>
@@ -238,7 +378,7 @@ function AdminDashboard() {
                 <div className="admin-table-row admin-job-grid" key={job.id}>
                   <div>
                     <h3>{job.title}</h3>
-                    <p>{job.company?.name}</p>
+                    <p>{job.company?.name || "-"}</p>
                   </div>
 
                   <span className="admin-badge admin-badge-type">
@@ -260,6 +400,7 @@ function AdminDashboard() {
                       type="button"
                       className="admin-action-btn edit"
                       title="Edit lowongan"
+                      onClick={() => handleEditJob(job)}
                     >
                       <Edit size={16} />
                     </button>
@@ -307,7 +448,12 @@ function AdminDashboard() {
 
             <div className="admin-user-search">
               <Search size={13} />
-              <input type="text" placeholder="Cari pengguna..." />
+              <input
+                type="text"
+                placeholder="Cari pengguna..."
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+              />
             </div>
           </div>
 
@@ -318,36 +464,48 @@ function AdminDashboard() {
               <span>Aksi</span>
             </div>
 
-            {users.map((user) => (
-              <div className="admin-table-row admin-user-grid" key={user.id}>
-                <div className="admin-user-info">
-                  <div className="admin-user-avatar">
-                    {user.photo ? (
-                      <img src={user.photo} alt={user.name} />
-                    ) : (
-                      <span className="admin-user-avatar-fallback">
-                        {user.name.charAt(0)}
-                      </span>
-                    )}
+            {loadingUsers ? (
+              <div className="admin-empty-row">Memuat pengguna...</div>
+            ) : filteredUsers.length > 0 ? (
+              filteredUsers.map((user) => (
+                <div className="admin-table-row admin-user-grid" key={user.id}>
+                  <div className="admin-user-info">
+                    <div className="admin-user-avatar">
+                      {user.avatar_url || user.photo ? (
+                        <img
+                          src={getUserPhoto(user)}
+                          alt={user.name || "User"}
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <span className="admin-user-avatar-fallback">
+                          {(user.name || "U").charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3>{user.name || "-"}</h3>
                   </div>
 
-                  <h3>{user.name}</h3>
-                </div>
+                  <span>{user.email || "-"}</span>
 
-                <span>{user.email}</span>
-
-                <div className="admin-actions">
-                  <button
-                    type="button"
-                    className="admin-action-btn reset"
-                    title="Reset password"
-                    onClick={() => openResetPasswordModal(user)}
-                  >
-                    <KeyRound size={16} />
-                  </button>
+                  <div className="admin-actions">
+                    <button
+                      type="button"
+                      className="admin-action-btn reset"
+                      title="Reset password"
+                      onClick={() => openResetPasswordModal(user)}
+                    >
+                      <KeyRound size={16} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="admin-empty-row">Pengguna tidak ditemukan</div>
+            )}
           </div>
         </section>
       </main>

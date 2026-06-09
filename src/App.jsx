@@ -75,8 +75,20 @@ function App() {
         }
       />
 
+      {/* Route edit tanpa id, agar tidak error kalau dibuka manual */}
       <Route
         path="/admin/edit-lowongan"
+        element={
+          <EditLowongan
+            dataLowongan={dataLowongan}
+            setDataLowongan={setDataLowongan}
+          />
+        }
+      />
+
+      {/* Route edit dengan id, dipakai ketika klik icon edit dari dashboard admin */}
+      <Route
+        path="/admin/edit-lowongan/:id"
         element={
           <EditLowongan
             dataLowongan={dataLowongan}
@@ -90,10 +102,12 @@ function App() {
         path="/dashboard-admin"
         element={<Navigate to="/admin/dashboard" replace />}
       />
+
       <Route
         path="/tambah-lowongan"
         element={<Navigate to="/admin/tambah-lowongan" replace />}
       />
+
       <Route
         path="/edit-lowongan"
         element={<Navigate to="/admin/edit-lowongan" replace />}

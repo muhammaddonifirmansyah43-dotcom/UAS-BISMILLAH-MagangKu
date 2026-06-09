@@ -1,17 +1,31 @@
 import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import defaultPhoto from "../assets/Karim-Benzema-Profil.jpeg";
 
 const defaultProfile = {
-  name: "Karim Benzema",
-  email: "karimbenzema@gmail.com",
-  school: "Universitas of Santiago de Bernabeu",
-  photo: defaultPhoto,
+  name: "Pengguna",
+  email: "pengguna@gmail.com",
+  school: "Universitas / Sekolah",
+  photo: "",
+};
+
+const getProfileKey = () => {
+  const user = JSON.parse(localStorage.getItem("user")) || {};
+  return user.email ? `userProfile_${user.email}` : "userProfile";
 };
 
 const getStoredProfile = () => {
   try {
-    return JSON.parse(localStorage.getItem("userProfile")) || defaultProfile;
+    const user = JSON.parse(localStorage.getItem("user")) || {};
+    const userProfile =
+      JSON.parse(localStorage.getItem(getProfileKey())) || {};
+
+    return {
+      ...defaultProfile,
+      name: userProfile.name || user.name || defaultProfile.name,
+      email: user.email || userProfile.email || defaultProfile.email,
+      school: userProfile.school || defaultProfile.school,
+      photo: userProfile.photo || user.avatar_url || "",
+    };
   } catch {
     return defaultProfile;
   }
@@ -21,20 +35,41 @@ function ProfileModal({ onClose, showEditButton = false }) {
   const navigate = useNavigate();
   const profile = getStoredProfile();
 
+  const getInitial = (name) => {
+    if (!name) return "P";
+    return name.trim().charAt(0).toUpperCase();
+  };
+
   const handleEditProfile = () => {
     onClose();
-    navigate("/edit-profil");
+    navigate("/settings");
   };
 
   return (
     <div className="profile-modal-overlay">
       <div className="profile-modal-box">
-        <button className="profile-modal-close" onClick={onClose}>
+        <button
+          type="button"
+          className="profile-modal-close"
+          onClick={onClose}
+        >
           <X size={20} />
         </button>
 
         <div className="profile-modal-photo">
-          <img src={profile.photo || defaultPhoto} alt={profile.name} />
+          {profile.photo ? (
+            <img
+              src={profile.photo}
+              alt={profile.name}
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          ) : (
+            <div className="profile-modal-initial">
+              {getInitial(profile.name)}
+            </div>
+          )}
         </div>
 
         <div className="profile-modal-form">
@@ -50,6 +85,7 @@ function ProfileModal({ onClose, showEditButton = false }) {
 
         {showEditButton && (
           <button
+            type="button"
             className="profile-modal-edit-btn"
             onClick={handleEditProfile}
           >

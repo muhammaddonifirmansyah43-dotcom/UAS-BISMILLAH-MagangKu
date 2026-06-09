@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Briefcase, CalendarDays } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import JobCard from "../components/JobCard";
-import { Link, useNavigate } from "react-router-dom";
+
 import api from "../api/api";
 import { mapInternshipToJob } from "../api/jobMapper";
 
@@ -40,7 +42,7 @@ function Dashboard() {
       location: "-",
       status: "open",
       closeDate: null,
-      logo: "",
+      logo: "/images/logo-agrowisata.jpeg",
     };
   };
 
@@ -53,52 +55,58 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-
-        const internshipsResponse = await api.get("/internships");
-
-        const openJobs = internshipsResponse.data.data
-          .map(mapInternshipToJob)
-          .filter((job) => job.status === "open");
-
-        let savedIds = [];
-        let mappedSavedJobs = [];
-
-        try {
-          const bookmarksResponse = await api.get("/bookmarks");
-          const bookmarkData = bookmarksResponse.data.data || [];
-
-          savedIds = getSavedInternshipIds(bookmarkData);
-          mappedSavedJobs = bookmarkData.map(mapBookmarkToJob);
-        } catch (bookmarkError) {
-          console.error("Gagal mengambil data bookmark:", bookmarkError);
-        }
-
-        const jobsWithSavedStatus = openJobs.map((job) => ({
-          ...job,
-          isSaved: savedIds.includes(job.id),
-        }));
-
-        setJobs(jobsWithSavedStatus);
-        setSavedJobs(mappedSavedJobs);
-      } catch (error) {
-        console.error("Gagal mengambil data dashboard:", error);
-
-        if (error.response?.status === 401) {
-          alert("Sesi login kamu sudah habis. Silakan login ulang.");
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          navigate("/login");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
-  }, [navigate]);
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      const internshipsResponse = await api.get("/internships");
+      const internshipData = internshipsResponse.data.data || [];
+
+      const openJobs = internshipData
+        .map(mapInternshipToJob)
+        .filter((job) => job.status === "open");
+
+      let savedIds = [];
+      let mappedSavedJobs = [];
+
+      try {
+        const bookmarksResponse = await api.get("/bookmarks");
+        const bookmarkData = bookmarksResponse.data.data || [];
+
+        savedIds = getSavedInternshipIds(bookmarkData);
+        mappedSavedJobs = bookmarkData.map(mapBookmarkToJob);
+      } catch (bookmarkError) {
+        console.error("Gagal mengambil data bookmark:", bookmarkError);
+      }
+
+      const jobsWithSavedStatus = openJobs.map((job) => ({
+        ...job,
+        isSaved: savedIds.includes(job.id),
+        logo: job.logo || "/images/logo-agrowisata.jpeg",
+      }));
+
+      setJobs(jobsWithSavedStatus);
+      setSavedJobs(mappedSavedJobs);
+    } catch (error) {
+      console.error("Gagal mengambil data dashboard:", error);
+
+      if (error.response?.status === 401) {
+        alert("Sesi login kamu sudah habis. Silakan login ulang.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
+
+      setJobs([]);
+      setSavedJobs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="page">

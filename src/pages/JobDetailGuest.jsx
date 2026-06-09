@@ -1,95 +1,37 @@
-import NavbarGuest from "../components/NavbarGuest";
-import Footer from "../components/Footer";
-import { Mail, Phone } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
-function AboutGuest() {
+function JobDetailGuest() {
+  const navigate = useNavigate();
+
   return (
-    <div className="page about-guest-page">
-      <NavbarGuest />
+    <div className="detail-page">
+      <main className="detail-container">
+        <div className="guest-login-modal guest-detail-access-card">
+          <div className="guest-login-icon">🔒</div>
 
-      <main className="about-guest-container">
-        <section className="about-guest-header">
-          <h1>Tentang Kami</h1>
-          <p>Mengenal lebih jauh MagangKu</p>
-        </section>
+          <h2>Membutuhkan akses</h2>
 
-        <section className="about-guest-section">
-          <h2>Apa itu MagangKu?</h2>
+          <p>Silakan login terlebih dahulu untuk melihat detail lowongan ini.</p>
 
-          <div className="about-text">
-            <p>
-              MagangKu merupakan platform digital yang dirancang untuk
-              memudahkan pengguna, khususnya anak muda usia 16–25 tahun, dalam
-              mencari dan melamar lowongan magang secara praktis dan efisien.
-              Dengan tampilan yang modern dan user-friendly, website ini
-              menghadirkan pengalaman yang nyaman saat digunakan.
-            </p>
+          <Link to="/login" className="guest-login-btn">
+            Login sekarang
+          </Link>
 
-            <p>
-              Menggunakan konsep desain yang elegan dan profesional, website ini
-              menampilkan informasi lowongan secara jelas, menarik, dan mudah
-              dipahami memberikan kesan up-to-date sesuai dengan kebutuhan
-              pengguna masa kini.
-            </p>
-          </div>
-        </section>
+          <Link to="/register" className="guest-register-btn">
+            Daftar akun
+          </Link>
 
-        <section className="about-guest-section">
-          <h2>Visi & Misi</h2>
-
-          <div className="vision-mission-grid guest-vision-grid">
-            <div className="vision-card">
-              <span>Visi</span>
-              <h3>
-                Menjadi teman setia mahasiswa dalam memulai langkah pertama di
-                dunia kerja
-              </h3>
-            </div>
-
-            <div className="vision-card">
-              <span>Misi</span>
-
-              <ol>
-                <li>
-                  Menyajikan info lowongan dengan bahasa yang mudah dipahami dan
-                  komunikatif.
-                </li>
-                <li>
-                  Memberikan update berkala mengenai lowongan magang yang sedang
-                  hits.
-                </li>
-                <li>
-                  Menjadi sumber motivasi melalui penyediaan info peluang kerja
-                  praktik yang beragam.
-                </li>
-              </ol>
-            </div>
-          </div>
-        </section>
-
-        <section className="about-guest-section">
-          <h2>Hubungi Kami</h2>
-          <p className="contact-desc">
-            Ada pertanyaan? Jangan ragu untuk menghubungi kami
-          </p>
-
-          <div className="contact-row">
-            <div className="contact-box">
-              <Mail size={20} />
-              <span>MagangKu@gmail.com</span>
-            </div>
-
-            <div className="contact-box">
-              <Phone size={20} />
-              <span>+62 812 3456 789</span>
-            </div>
-          </div>
-        </section>
+          <button
+            type="button"
+            className="guest-later-btn"
+            onClick={() => navigate("/cari-lowongan")}
+          >
+            Nanti saja
+          </button>
+        </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
 
-export default AboutGuest;
+export default JobDetailGuest;

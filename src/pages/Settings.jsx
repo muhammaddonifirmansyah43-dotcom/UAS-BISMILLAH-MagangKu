@@ -10,20 +10,48 @@ import {
   UserCircle2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import userPhoto from "../assets/Karim-Benzema-Profil.jpeg";
+import api from "../api/api";
 
 const defaultProfile = {
-  name: "Karim Benzema",
-  email: "karimbenzema@gmail.com",
-  school: "Universitas of Santiago de Bernabeu",
-  photo: userPhoto,
+  name: "Pengguna",
+  email: "pengguna@gmail.com",
+  school: "Universitas / Sekolah",
+  photo: "",
 };
 
 function Settings() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
-  const [formData, setFormData] = useState(defaultProfile);
+  const adminEmail = "magangku18@gmail.com";
+
+  const forgotPasswordMailto = `mailto:${adminEmail}?subject=Permintaan Reset Password MagangKu&body=Halo Admin MagangKu,%0A%0ASaya lupa password akun saya.%0A%0ANama:%0AEmail akun:%0A%0AMohon bantu reset password saya.%0A%0ATerima kasih.`;
+
+  const getInitial = (name) => {
+    if (!name) return "P";
+    return name.trim().charAt(0).toUpperCase();
+  };
+
+  const getProfileKey = () => {
+    const user = JSON.parse(localStorage.getItem("user")) || {};
+    return user.email ? `userProfile_${user.email}` : "userProfile";
+  };
+
+  const getCurrentProfile = () => {
+    const user = JSON.parse(localStorage.getItem("user")) || {};
+    const storedProfile =
+      JSON.parse(localStorage.getItem(getProfileKey())) || {};
+
+    return {
+      ...defaultProfile,
+      name: storedProfile.name || user.name || defaultProfile.name,
+      email: user.email || storedProfile.email || defaultProfile.email,
+      school: storedProfile.school || defaultProfile.school,
+      photo: storedProfile.photo || user.avatar_url || "",
+    };
+  };
+
+  const [formData, setFormData] = useState(getCurrentProfile);
 
   const [passwordData, setPasswordData] = useState({
     oldPassword: "",
@@ -32,20 +60,14 @@ function Settings() {
   });
 
   const [passwordErrors, setPasswordErrors] = useState({});
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    const storedProfile = JSON.parse(localStorage.getItem("userProfile"));
-
-    if (storedProfile) {
-      setFormData(storedProfile);
-    } else {
-      localStorage.setItem("userProfile", JSON.stringify(defaultProfile));
-      setFormData(defaultProfile);
-    }
+    setFormData(getCurrentProfile());
   }, []);
 
   const handleChange = (event) => {
@@ -81,7 +103,25 @@ function Settings() {
   const handleSaveProfile = (event) => {
     event.preventDefault();
 
-    localStorage.setItem("userProfile", JSON.stringify(formData));
+    const updatedProfile = {
+      name: formData.name,
+      email: formData.email,
+      school: formData.school,
+      photo: formData.photo,
+    };
+
+    const user = JSON.parse(localStorage.getItem("user")) || {};
+
+    const updatedUser = {
+      ...user,
+      name: formData.name,
+      email: formData.email,
+      avatar_url: formData.photo || user.avatar_url || "",
+    };
+
+    localStorage.setItem(getProfileKey(), JSON.stringify(updatedProfile));
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+
     window.dispatchEvent(new Event("profileUpdated"));
 
     alert("Profil berhasil disimpan!");
@@ -98,6 +138,7 @@ function Settings() {
     setPasswordErrors((prevErrors) => ({
       ...prevErrors,
       [name]: "",
+      general: "",
     }));
   };
 
@@ -105,7 +146,7 @@ function Settings() {
     const newErrors = {};
 
     if (!passwordData.oldPassword.trim()) {
-      newErrors.oldPassword = "Password lama";
+      newErrors.oldPassword = "Password lama wajib di isi";
     }
 
     if (!passwordData.newPassword.trim()) {
@@ -123,7 +164,7 @@ function Settings() {
     return newErrors;
   };
 
-  const handleSavePassword = (event) => {
+  const handleSavePassword = async (event) => {
     event.preventDefault();
 
     const validationErrors = validatePasswordForm();
@@ -133,15 +174,56 @@ function Settings() {
       return;
     }
 
-    alert("Password berhasil diperbarui!");
+    try {
+      setPasswordLoading(true);
 
-    setPasswordData({
-      oldPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+      await api.put("/change-password", {
+        old_password: passwordData.oldPassword,
+        new_password: passwordData.newPassword,
+        new_password_confirmation: passwordData.confirmPassword,
+      });
 
-    setPasswordErrors({});
+      alert("Password berhasil diperbarui!");
+
+      setPasswordData({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+
+      setPasswordErrors({});
+    } catch (error) {
+      console.error("Gagal mengganti password:", error);
+      console.log("Status:", error.response?.status);
+      console.log("Data error:", error.response?.data);
+
+      if (error.response?.status === 401) {
+        alert("Sesi login kamu sudah habis. Silakan login ulang.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
+
+      if (error.response?.status === 422) {
+        const backendMessage =
+          error.response?.data?.message || "Data password tidak valid.";
+
+        setPasswordErrors({
+          general: backendMessage,
+        });
+
+        return;
+      }
+
+      setPasswordErrors({
+        general:
+          error.response?.data?.message ||
+          "Gagal mengganti password. Pastikan backend berjalan.",
+      });
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   return (
@@ -156,9 +238,9 @@ function Settings() {
 
       <main className="setting-container">
         <h1 className="setting-title">
-  <SettingsIcon size={18} />
-  Pengaturan
-</h1>
+          <SettingsIcon size={18} />
+          Pengaturan
+        </h1>
 
         <section className="setting-card">
           <div className="setting-card-header">
@@ -169,7 +251,13 @@ function Settings() {
           <form onSubmit={handleSaveProfile}>
             <div className="setting-profile-top">
               <div className="setting-photo-wrapper" onClick={handlePhotoClick}>
-                <img src={formData.photo || userPhoto} alt="Foto Profil" />
+                {formData.photo ? (
+                  <img src={formData.photo} alt="Foto Profil" />
+                ) : (
+                  <div className="setting-profile-initial">
+                    {getInitial(formData.name)}
+                  </div>
+                )}
 
                 <button type="button" className="setting-camera-btn">
                   <Camera size={13} />
@@ -235,6 +323,12 @@ function Settings() {
           </div>
 
           <form onSubmit={handleSavePassword}>
+            {passwordErrors.general && (
+              <small className="error-text" style={{ marginBottom: "10px" }}>
+                {passwordErrors.general}
+              </small>
+            )}
+
             <div className="setting-form-group">
               <label>
                 Password lama {passwordErrors.oldPassword && <span>*</span>}
@@ -247,12 +341,14 @@ function Settings() {
                   value={passwordData.oldPassword}
                   onChange={handlePasswordChange}
                   className={passwordErrors.oldPassword ? "input-error" : ""}
+                  disabled={passwordLoading}
                 />
 
                 <button
                   type="button"
                   className="password-eye-btn"
                   onClick={() => setShowOldPassword(!showOldPassword)}
+                  disabled={passwordLoading}
                 >
                   {showOldPassword ? <Eye size={15} /> : <EyeOff size={15} />}
                 </button>
@@ -278,12 +374,14 @@ function Settings() {
                     value={passwordData.newPassword}
                     onChange={handlePasswordChange}
                     className={passwordErrors.newPassword ? "input-error" : ""}
+                    disabled={passwordLoading}
                   />
 
                   <button
                     type="button"
                     className="password-eye-btn"
                     onClick={() => setShowNewPassword(!showNewPassword)}
+                    disabled={passwordLoading}
                   >
                     {showNewPassword ? <Eye size={15} /> : <EyeOff size={15} />}
                   </button>
@@ -311,6 +409,7 @@ function Settings() {
                     className={
                       passwordErrors.confirmPassword ? "input-error" : ""
                     }
+                    disabled={passwordLoading}
                   />
 
                   <button
@@ -319,6 +418,7 @@ function Settings() {
                     onClick={() =>
                       setShowConfirmPassword(!showConfirmPassword)
                     }
+                    disabled={passwordLoading}
                   >
                     {showConfirmPassword ? (
                       <Eye size={15} />
@@ -339,11 +439,15 @@ function Settings() {
             <p className="setting-forgot">
               <Info size={13} />
               Lupa password? Hubungi admin{" "}
-              <a href="mailto:@magangku.com">@magangku.com</a>
+              <a href={forgotPasswordMailto}>{adminEmail}</a>
             </p>
 
-            <button type="submit" className="setting-save-btn">
-              Simpan password
+            <button
+              type="submit"
+              className="setting-save-btn"
+              disabled={passwordLoading}
+            >
+              {passwordLoading ? "Memproses..." : "Simpan password"}
             </button>
           </form>
         </section>

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
+
 import NavbarGuest from "../components/NavbarGuest";
 import Footer from "../components/Footer";
 import JobCard from "../components/JobCard";
-import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+
 import api from "../api/api";
 import { mapInternshipToJob } from "../api/jobMapper";
 
@@ -13,20 +15,28 @@ function LandingPage() {
   const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const response = await api.get("/internships");
-        const mappedJobs = response.data.data.map(mapInternshipToJob);
-        setJobs(mappedJobs);
-      } catch (error) {
-        console.error("Gagal mengambil data lowongan:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchJobs();
   }, []);
+
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+
+      const response = await api.get("/internships");
+      const internshipData = response.data.data || [];
+
+      const openJobs = internshipData
+        .map(mapInternshipToJob)
+        .filter((job) => job.status === "open");
+
+      setJobs(openJobs);
+    } catch (error) {
+      console.error("Gagal mengambil data lowongan:", error);
+      setJobs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="landing-page">
@@ -58,15 +68,18 @@ function LandingPage() {
           <section className="job-grid">
             {loading ? (
               <p className="loading-text">Memuat lowongan...</p>
-            ) : (
+            ) : jobs.length > 0 ? (
               jobs.slice(0, 2).map((job) => (
                 <JobCard
                   key={job.id}
                   job={job}
+                  detailPath="/detail-lowongan"
                   isGuest={true}
                   onDetailClick={() => setShowLoginPopup(true)}
                 />
               ))
+            ) : (
+              <p className="loading-text">Belum ada lowongan tersedia.</p>
             )}
           </section>
         </main>

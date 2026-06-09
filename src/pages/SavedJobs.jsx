@@ -7,6 +7,7 @@ import {
   MapPin,
   Trash2,
 } from "lucide-react";
+
 import api from "../api/api";
 import { mapInternshipToJob } from "../api/jobMapper";
 
@@ -18,37 +19,55 @@ function SavedJobs() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const defaultLogo = "/images/logo-agrowisata.jpeg";
+
+  useEffect(() => {
+    fetchSavedJobs();
+  }, []);
+
   const mapBookmarkToJob = (bookmark) => {
     if (bookmark.internship) {
-      return mapInternshipToJob(bookmark.internship);
+      return {
+        ...mapInternshipToJob(bookmark.internship),
+        bookmarkId: bookmark.id,
+        internshipId: bookmark.internship.id,
+      };
     }
 
     if (bookmark.title) {
       return {
-        id: bookmark.id,
-        title: bookmark.title,
+        id: bookmark.internship_id || bookmark.id,
+        bookmarkId: bookmark.id,
+        internshipId: bookmark.internship_id || bookmark.id,
+        title: bookmark.title || "Lowongan tersimpan",
         company: bookmark.company?.name || bookmark.company || "-",
-        type: bookmark.type,
-        location: bookmark.location,
-        description: bookmark.description,
-        requirements: bookmark.requirements,
-        registrationUrl: bookmark.registration_url,
-        status: bookmark.status,
-        openDate: bookmark.open_date,
-        closeDate: bookmark.close_date,
-        logo: bookmark.company?.logo_url || bookmark.logo || bookmark.image || "",
+        type: bookmark.type || "-",
+        location: bookmark.location || "-",
+        description: bookmark.description || "",
+        requirements: bookmark.requirements || "",
+        registrationUrl: bookmark.registration_url || "",
+        status: bookmark.status || "open",
+        openDate: bookmark.open_date || "",
+        closeDate: bookmark.close_date || "",
+        logo:
+          bookmark.company?.logo_url ||
+          bookmark.logo ||
+          bookmark.image ||
+          defaultLogo,
         companyData: bookmark.company,
       };
     }
 
     return {
-      id: bookmark.internship_id,
-      title: "Lowongan tersimpan",
+      id: bookmark.internship_id || bookmark.id,
+      bookmarkId: bookmark.id,
+      internshipId: bookmark.internship_id || bookmark.id,
+      title: "Lowongan tidak tersedia",
       company: "-",
       type: "-",
       location: "-",
-      status: "open",
-      logo: "",
+      status: "closed",
+      logo: defaultLogo,
     };
   };
 
@@ -69,15 +88,14 @@ function SavedJobs() {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/login");
+        return;
       }
+
+      setSavedJobs([]);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchSavedJobs();
-  }, []);
 
   const handleOpenDeleteModal = (job) => {
     setSelectedJob(job);
@@ -88,10 +106,15 @@ function SavedJobs() {
     if (!selectedJob) return;
 
     try {
-      await api.delete(`/bookmarks/${selectedJob.id}`);
+      const internshipId = selectedJob.internshipId || selectedJob.id;
+
+      await api.delete(`/bookmarks/${internshipId}`);
 
       setSavedJobs((prev) =>
-        prev.filter((job) => job.id !== selectedJob.id)
+        prev.filter((job) => {
+          const currentInternshipId = job.internshipId || job.id;
+          return currentInternshipId !== internshipId;
+        })
       );
 
       setSelectedJob(null);
@@ -100,6 +123,8 @@ function SavedJobs() {
       window.dispatchEvent(new Event("savedJobsUpdated"));
     } catch (error) {
       console.error("Gagal menghapus lowongan tersimpan:", error);
+      console.log("Status:", error.response?.status);
+      console.log("Data error:", error.response?.data);
 
       if (error.response?.status === 401) {
         alert("Sesi login kamu sudah habis. Silakan login ulang.");
@@ -107,17 +132,24 @@ function SavedJobs() {
         localStorage.removeItem("user");
         navigate("/login");
       } else {
-        alert("Gagal menghapus lowongan. Coba lagi ya.");
+        alert(
+          error.response?.data?.message ||
+            `Gagal menghapus lowongan. Status: ${
+              error.response?.status || "unknown"
+            }`
+        );
       }
     }
   };
 
   const handleGoToDetail = (job) => {
     if (job.status === "closed") {
+      alert("Lowongan ini sudah di tutup!");
       return;
     }
 
-    navigate(`/job-detail/${job.id}`);
+    const internshipId = job.internshipId || job.id;
+    navigate(`/job-detail/${internshipId}`);
   };
 
   return (
@@ -150,28 +182,34 @@ function SavedJobs() {
             <div className="saved-login-list">
               {savedJobs.map((job) => (
                 <article
-                  key={job.id}
+                  key={`${job.bookmarkId || job.id}-${job.internshipId || job.id}`}
                   className={`saved-login-card ${
                     job.status === "closed" ? "saved-login-card-closed" : ""
                   }`}
                 >
                   <div className="saved-login-logo">
-                    <img src={job.logo || job.image} alt={job.company} />
+                    <img
+                      src={job.logo || defaultLogo}
+                      alt={job.company || "Logo perusahaan"}
+                      onError={(e) => {
+                        e.currentTarget.src = defaultLogo;
+                      }}
+                    />
                   </div>
 
                   <div className="saved-login-info">
-                    <h2>{job.title}</h2>
-                    <p>{job.company}</p>
+                    <h2>{job.title || "Lowongan tersimpan"}</h2>
+                    <p>{job.company || "-"}</p>
 
                     <div className="saved-login-tags">
                       <span>
                         <Briefcase size={12} />
-                        {job.type}
+                        {job.type || "-"}
                       </span>
 
                       <span>
                         <MapPin size={12} />
-                        {job.location}
+                        {job.location || "-"}
                       </span>
 
                       <span
@@ -187,7 +225,8 @@ function SavedJobs() {
 
                     {job.status === "closed" && (
                       <p className="saved-closed-text">
-                        Lowongan sudah ditutup
+                        <span className="saved-warning-icon">!</span>
+                        Lowongan ini sudah di tutup!
                       </p>
                     )}
                   </div>

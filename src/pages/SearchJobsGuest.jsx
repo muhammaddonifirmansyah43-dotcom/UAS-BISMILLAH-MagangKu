@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+
 import NavbarGuest from "../components/NavbarGuest";
 import Footer from "../components/Footer";
 import SearchJobCard from "../components/SearchJobCard";
+
 import api from "../api/api";
 import { mapInternshipToJob } from "../api/jobMapper";
 
@@ -12,19 +14,70 @@ function SearchJobsGuest() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [activeType, setActiveType] = useState("Semua");
   const [selectedLocation, setSelectedLocation] = useState("");
+  const [locations, setLocations] = useState([]);
+
   const [showLocationFilter, setShowLocationFilter] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const filterJobs = (keyword, type, location, sourceJobs = jobs) => {
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+
+      const response = await api.get("/internships");
+      const internshipData = response.data.data || [];
+
+      const openJobs = internshipData
+        .map(mapInternshipToJob)
+        .filter((job) => job.status === "open");
+
+      const uniqueLocations = [
+        ...new Set(
+          openJobs
+            .map((job) => job.location)
+            .filter((location) => location && location.trim() !== "")
+        ),
+      ];
+
+      setJobs(openJobs);
+      setFilteredJobs(openJobs);
+      setLocations(uniqueLocations);
+    } catch (error) {
+      console.error("Gagal mengambil data lowongan:", error);
+      setJobs([]);
+      setFilteredJobs([]);
+      setLocations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterJobs = (
+    keyword = searchKeyword,
+    type = activeType,
+    location = selectedLocation,
+    sourceJobs = jobs
+  ) => {
     let result = [...sourceJobs];
 
     if (keyword.trim() !== "") {
-      result = result.filter(
-        (job) =>
-          job.title.toLowerCase().includes(keyword.toLowerCase()) ||
-          job.company.toLowerCase().includes(keyword.toLowerCase())
-      );
+      const lowerKeyword = keyword.toLowerCase();
+
+      result = result.filter((job) => {
+        const title = job.title || "";
+        const company = job.company || "";
+        const jobLocation = job.location || "";
+
+        return (
+          title.toLowerCase().includes(lowerKeyword) ||
+          company.toLowerCase().includes(lowerKeyword) ||
+          jobLocation.toLowerCase().includes(lowerKeyword)
+        );
+      });
     }
 
     if (type !== "Semua") {
@@ -37,29 +90,6 @@ function SearchJobsGuest() {
 
     setFilteredJobs(result);
   };
-
-  useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        setLoading(true);
-
-        const response = await api.get("/internships");
-
-        const mappedJobs = response.data.data
-          .map(mapInternshipToJob)
-          .filter((job) => job.status === "open");
-
-        setJobs(mappedJobs);
-        setFilteredJobs(mappedJobs);
-      } catch (error) {
-        console.error("Gagal mengambil data lowongan:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchJobs();
-  }, []);
 
   const handleSearch = () => {
     filterJobs(searchKeyword, activeType, selectedLocation);
@@ -79,6 +109,12 @@ function SearchJobsGuest() {
     setShowLocationFilter(false);
   };
 
+  const handleResetLocation = () => {
+    setSelectedLocation("");
+    filterJobs(searchKeyword, activeType, "");
+    setShowLocationFilter(false);
+  };
+
   return (
     <div className="search-guest-page">
       <NavbarGuest />
@@ -89,7 +125,10 @@ function SearchJobsGuest() {
             type="text"
             placeholder="Cari Lowongan"
             value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
+            onChange={(e) => {
+              setSearchKeyword(e.target.value);
+              filterJobs(e.target.value, activeType, selectedLocation);
+            }}
           />
 
           <button type="button" onClick={handleSearch}>
@@ -115,27 +154,36 @@ function SearchJobsGuest() {
               className="location-filter-btn"
               onClick={() => setShowLocationFilter(!showLocationFilter)}
             >
-              Lokasi
+              {selectedLocation ? selectedLocation : "Lokasi"}
             </button>
 
             {showLocationFilter && (
               <div className="location-dropdown">
                 <h4>Pilih Lokasi</h4>
 
-                {[
-                  { label: "Pilih semua", value: "" },
-                  { label: "Malang", value: "Malang" },
-                  { label: "Batu", value: "Batu" },
-                ].map((item) => (
-                  <label className="location-option" key={item.label}>
-                    <input
-                      type="checkbox"
-                      checked={selectedLocation === item.value}
-                      onChange={() => handleChooseLocation(item.value)}
-                    />
-                    <span>{item.label}</span>
-                  </label>
-                ))}
+                <label className="location-option">
+                  <input
+                    type="checkbox"
+                    checked={selectedLocation === ""}
+                    onChange={handleResetLocation}
+                  />
+                  <span>Pilih semua</span>
+                </label>
+
+                {locations.length > 0 ? (
+                  locations.map((location) => (
+                    <label className="location-option" key={location}>
+                      <input
+                        type="checkbox"
+                        checked={selectedLocation === location}
+                        onChange={() => handleChooseLocation(location)}
+                      />
+                      <span>{location}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="location-empty">Belum ada lokasi</p>
+                )}
 
                 <button type="button" onClick={handleApplyLocation}>
                   Terapkan
