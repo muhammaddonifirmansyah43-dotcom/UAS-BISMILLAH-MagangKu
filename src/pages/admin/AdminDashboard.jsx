@@ -135,31 +135,13 @@ function AdminDashboard() {
     setSelectedJob(null);
   };
 
-  const buildInternshipPayload = (job, status) => {
-    return {
-      company_id: job.company_id || job.company?.id,
-      title: job.title || "",
-      type: job.type || "Magang",
-      description: job.description || "",
-      requirements: job.requirements || "",
-      location: job.location || "",
-      registration_url: job.registration_url || "",
-      status: status,
-      open_date: job.open_date || null,
-      close_date: job.close_date || null,
-    };
-  };
-
   const handleCloseJob = async () => {
     if (!selectedJob) return;
 
     try {
       setActionLoading(true);
 
-      await api.put(
-        `/internships/${selectedJob.id}`,
-        buildInternshipPayload(selectedJob, "closed")
-      );
+      await api.patch(`/admin/internships/${selectedJob.id}/close`);
 
       await fetchJobs();
       closeModal();
@@ -167,6 +149,14 @@ function AdminDashboard() {
       console.error("Gagal menutup lowongan:", error);
       console.log("Status:", error.response?.status);
       console.log("Data error:", error.response?.data);
+
+      if (error.response?.status === 401) {
+        alert("Sesi login admin habis. Silakan login ulang.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
 
       alert(
         error.response?.data?.message ||
@@ -185,10 +175,7 @@ function AdminDashboard() {
     try {
       setActionLoading(true);
 
-      await api.put(
-        `/internships/${selectedJob.id}`,
-        buildInternshipPayload(selectedJob, "open")
-      );
+      await api.patch(`/admin/internships/${selectedJob.id}/open`);
 
       await fetchJobs();
       closeModal();
@@ -196,6 +183,14 @@ function AdminDashboard() {
       console.error("Gagal membuka lowongan:", error);
       console.log("Status:", error.response?.status);
       console.log("Data error:", error.response?.data);
+
+      if (error.response?.status === 401) {
+        alert("Sesi login admin habis. Silakan login ulang.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
 
       alert(
         error.response?.data?.message ||
@@ -214,7 +209,7 @@ function AdminDashboard() {
     try {
       setActionLoading(true);
 
-      await api.delete(`/internships/${selectedJob.id}`);
+      await api.delete(`/admin/internships/${selectedJob.id}`);
 
       await fetchJobs();
       closeModal();
@@ -222,6 +217,14 @@ function AdminDashboard() {
       console.error("Gagal menghapus lowongan:", error);
       console.log("Status:", error.response?.status);
       console.log("Data error:", error.response?.data);
+
+      if (error.response?.status === 401) {
+        alert("Sesi login admin habis. Silakan login ulang.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
 
       alert(
         error.response?.data?.message ||
