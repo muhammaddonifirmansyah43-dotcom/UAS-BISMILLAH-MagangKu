@@ -3384,24 +3384,6 @@ body {
   line-height: 1.2;
 }
 
-.forgot-password {
-  color: #b8a8d9;
-  font-size: 12px;
-  margin-top: -22px;
-  margin-bottom: 28px;
-  text-align: center;
-}
-
-.forgot-password a {
-  color: #6f4bb6;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.forgot-password a:hover {
-  text-decoration: underline;
-}
-
 .register-group label span {
   color: #ff1744;
 }
