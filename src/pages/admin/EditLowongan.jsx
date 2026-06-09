@@ -64,7 +64,7 @@ function EditLowongan() {
     }
 
     if (logoUrl.startsWith("/")) {
-      return `http://127.0.0.1:8000${logoUrl}`;
+      return logoUrl;
     }
 
     return logoUrl;
@@ -191,7 +191,7 @@ function EditLowongan() {
   const updateCompany = async () => {
     if (!formData.company_id) return;
 
-    await api.put(`/companies/${formData.company_id}`, {
+    await api.put(`/admin/companies/${formData.company_id}`, {
       name: formData.company_name,
       email: formData.company_email,
       phone: "",
@@ -218,7 +218,7 @@ function EditLowongan() {
 
       await updateCompany();
 
-      await api.put(`/internships/${id}`, {
+      await api.put(`/admin/internships/${id}`, {
         company_id: formData.company_id,
         title: formData.title,
         type: formData.type,
@@ -234,6 +234,8 @@ function EditLowongan() {
       setShowSuccess(true);
     } catch (error) {
       console.error("Gagal mengedit lowongan:", error);
+      console.log("Status:", error.response?.status);
+      console.log("Data error:", error.response?.data);
 
       if (error.response?.status === 401) {
         alert("Sesi login admin habis. Silakan login ulang.");

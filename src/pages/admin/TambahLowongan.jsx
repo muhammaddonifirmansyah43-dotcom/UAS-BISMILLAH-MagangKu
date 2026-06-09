@@ -121,16 +121,18 @@ function TambahLowongan() {
     const companiesResponse = await api.get("/companies");
     const companies = companiesResponse.data.data || [];
 
-    const existingCompany = companies.find(
-      (company) =>
-        company.name.toLowerCase() === formData.company_name.toLowerCase()
-    );
+    const existingCompany = companies.find((company) => {
+      return (
+        (company.name || "").toLowerCase() ===
+        formData.company_name.trim().toLowerCase()
+      );
+    });
 
     if (existingCompany) {
       return existingCompany.id;
     }
 
-    const companyResponse = await api.post("/companies", {
+    const companyResponse = await api.post("/admin/companies", {
       name: formData.company_name,
       email: formData.company_email,
       phone: "",
@@ -159,7 +161,7 @@ function TambahLowongan() {
 
       const companyId = await findOrCreateCompany();
 
-      await api.post("/internships", {
+      await api.post("/admin/internships", {
         company_id: companyId,
         title: formData.title,
         type: formData.type,
@@ -175,6 +177,8 @@ function TambahLowongan() {
       setShowSuccess(true);
     } catch (error) {
       console.error("Gagal menambah lowongan:", error);
+      console.log("Status:", error.response?.status);
+      console.log("Data error:", error.response?.data);
 
       if (error.response?.status === 401) {
         alert("Sesi login admin habis. Silakan login ulang.");
@@ -462,7 +466,7 @@ function TambahLowongan() {
               disabled={loadingSubmit}
             >
               <Save size={15} />
-              {loadingSubmit ? "Menyimpan..." : "Simpan perubahan"}
+              {loadingSubmit ? "Menyimpan..." : "Tambah lowongan"}
             </button>
           </div>
         </form>
